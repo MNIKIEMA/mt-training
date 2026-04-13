@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from transformers import (
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
+    EarlyStoppingCallback,
     HfArgumentParser,
     PreTrainedTokenizerBase,
     Seq2SeqTrainer,
@@ -37,12 +38,8 @@ class DataTrainingArguments:
         default=256,
         metadata={"help": "Max token length for source and target sequences"},
     )
-    generation_max_length: int = field(
-        default=128,
-        metadata={"help": "Max token length during generation (eval/predict)"},
-    )
     eval_subset_size: int = field(
-        default=200,
+        default=500,
         metadata={"help": "Number of validation examples used for BLEU/chrF during training"},
     )
 
@@ -57,11 +54,9 @@ class ModelArguments:
         default="madoss",
         metadata={"help": "HuggingFace user/org ID for output repo"},
     )
-    output_dir: str = field(
-        default="",
-        metadata={
-            "help": "Output directory. Defaults to <hf_id>/nllb-200-finetuned-600-<SRC>-<TGT>"
-        },
+    early_stopping_patience: int = field(
+        default=3,
+        metadata={"help": "Stop training after this many evals with no improvement"},
     )
 
 
@@ -142,16 +137,14 @@ def main():
         tuple[ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments],
         parser.parse_args_into_dataclasses(),
     )
-
-    if not model_args.output_dir:
-        src_tag = data_args.src_lang.split("_")[0].upper()
-        tgt_tag = data_args.tgt_lang.split("_")[0].upper()
-        model_args.output_dir = os.path.join(
-            model_args.hf_id,
-            f"nllb-200-finetuned-600-{src_tag}-{tgt_tag}",
-        )
-        training_args.output_dir = model_args.output_dir
-        training_args.hub_model_id = model_args.output_dir
+    src_tag = data_args.src_lang.split("_")[0].upper()
+    tgt_tag = data_args.tgt_lang.split("_")[0].upper()
+    repo_name = f"nllb-200-finetuned-600-{src_tag}-{tgt_tag}"
+    training_args.output_dir = repo_name
+    training_args.hub_model_id = f"{model_args.hf_id}/{repo_name}"
+    training_args.load_best_model_at_end = True
+    training_args.metric_for_best_model = "chrf"
+    training_args.greater_is_better = True
 
     dataset = load_and_prepare_dataset(data_args)
 
@@ -184,6 +177,7 @@ def main():
         train_dataset=tokenized_dataset["train"],
         eval_dataset=eval_dataset,
         compute_metrics=build_compute_metrics(tokenizer),
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience)],
     )
 
     trainer.train()
