@@ -31,6 +31,26 @@ clean:
 typecheck:
     uvx ty check
 
+# Train NLLB model (override any arg via CLI, e.g. --num_train_epochs 5)
+train:
+    uv run python -m mt_training.train \
+        --num_train_epochs 5 \
+        --per_device_train_batch_size 16 \
+        --per_device_eval_batch_size 16 \
+        --gradient_accumulation_steps 8 \
+        --eval_accumulation_steps 4 \
+        --learning_rate 2e-5 \
+        --lr_scheduler_type constant \
+        --eval_strategy steps \
+        --eval_steps 100 \
+        --save_strategy epoch \
+        --predict_with_generate \
+        --gradient_checkpointing \
+        --push_to_hub \
+        --hub_private_repo \
+        --hub_strategy end \
+        --report_to trackio
+
 # Run using Pytest
 test:
 	uv run pytest
