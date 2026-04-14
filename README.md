@@ -11,7 +11,7 @@ cp .env.example .env  # fill in credentials
 
 Required env vars for S3/eval:
 
-```
+```shell
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_ENDPOINT_URL_S3=https://fly.storage.tigris.dev
