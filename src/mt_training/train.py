@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass, field
 from typing import cast
 
@@ -178,9 +177,10 @@ def main():
         eval_dataset=eval_dataset,
         compute_metrics=build_compute_metrics(tokenizer),
         callbacks=[EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience)],
+        processing_class=tokenizer,
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 
     eval_res = trainer.evaluate(tokenized_dataset["validation"])
     trainer.save_metrics("eval", eval_res)
