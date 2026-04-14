@@ -12,6 +12,7 @@ class Seq2SeqModel(Protocol):
     def eval(self) -> "Seq2SeqModel": ...
 
 DEFAULT_MODEL = "madoss/nllb-200-finetuned-600-FRA-MOS"
+BASE_TOKENIZER = "facebook/nllb-200-distilled-600M"
 SRC_LANG = "fra_Latn"
 TGT_LANG = "mos_Latn"
 MAX_NEW_TOKENS = 128
@@ -24,14 +25,27 @@ def translate(text: str, model: Seq2SeqModel, tokenizer: PreTrainedTokenizerBase
         **inputs,
         forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
         max_new_tokens=MAX_NEW_TOKENS,
+        use_cache=True,
     )
     return str(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
 
-def load_model(model_name: str) -> tuple[Seq2SeqModel, PreTrainedTokenizerBase]:
+def translate_batch(texts: list[str], model: Seq2SeqModel, tokenizer: PreTrainedTokenizerBase, src_lang: str = SRC_LANG, tgt_lang: str = TGT_LANG) -> list[str]:
+    inputs = tokenizer(texts, src_lang=src_lang, return_tensors="pt", padding=True, truncation=True)
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+    outputs = model.generate(
+        **inputs,
+        forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
+        max_new_tokens=MAX_NEW_TOKENS,
+        use_cache=True,
+    )
+    return [str(tokenizer.decode(seq, skip_special_tokens=True)) for seq in outputs]
+
+
+def load_model(model_name: str, tokenizer_name: str = BASE_TOKENIZER) -> tuple[Seq2SeqModel, PreTrainedTokenizerBase]:
     tokenizer = cast(
         PreTrainedTokenizerBase,
-        AutoTokenizer.from_pretrained(model_name, src_lang=SRC_LANG, tgt_lang=TGT_LANG),
+        AutoTokenizer.from_pretrained(tokenizer_name, src_lang=SRC_LANG, tgt_lang=TGT_LANG),
     )
     model = cast(
         Seq2SeqModel,
