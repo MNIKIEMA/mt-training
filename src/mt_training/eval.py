@@ -53,8 +53,8 @@ class EvalConfig:
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
     limit: int | None = field(default=None, metadata={"help": "Evaluate on first N examples only"})
     show_samples: int = field(default=5, metadata={"help": "Print N sample translations"})
-    output: Path | None = field(default=None, metadata={"help": "Save predictions to this file (.csv or .jsonl)"})
-    output_format: Literal["csv", "jsonl"] = field(default="jsonl", metadata={"help": "Output format when --output is set"})
+    output: Path | str = field(default="evaluations.csv", metadata={"help": "Save predictions to this file (.csv or .jsonl)"})
+    output_format: Literal["csv", "jsonl"] = field(default="csv", metadata={"help": "Output format when --output is set"})
 
 
 def build_storage_options() -> dict:
@@ -183,7 +183,9 @@ def main(cfg: EvalConfig) -> None:
     print("=" * 50)
 
     if cfg.output is not None:
-        save_predictions(cfg.output, cfg.output_format, sources, references, hypotheses)
+        output = Path(cfg.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        save_predictions(output, cfg.output_format, sources, references, hypotheses)
 
     if cfg.show_samples > 0:
         print(f"\nSample translations (first {cfg.show_samples}):")
