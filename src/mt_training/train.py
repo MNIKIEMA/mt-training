@@ -188,6 +188,8 @@ def main():
         test_res = trainer.evaluate(tokenized_dataset["test"])
         trainer.save_metrics("test", test_res)
 
+    trainer.push_to_hub()
+
 
 if __name__ == "__main__":
     main()

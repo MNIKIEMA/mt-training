@@ -6,7 +6,8 @@ uv run python -m mt_training.train \
     --gradient_accumulation_steps 2 \
     --eval_accumulation_steps 1 \
     --learning_rate 2e-5 \
-    --lr_scheduler_type constant \
+    --lr_scheduler_type cosine_with_min_lr \
+    --lr_scheduler_kwargs '{"min_lr": 1e-6}' \
     --eval_strategy steps \
     --eval_steps 100 \
     --save_strategy epoch \
