@@ -27,34 +27,58 @@ from typing import Literal, cast
 
 import draccus
 import evaluate
+import pandas as pd
 import torch
-from datasets import Dataset, load_dataset, load_from_disk
+from datasets import Dataset, DownloadConfig, load_dataset, load_from_disk
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from mt_training.inference import DEFAULT_MODEL, SRC_LANG, TGT_LANG, load_model, translate_batch
+from mt_training.inference import (
+    DEFAULT_MODEL,
+    SRC_LANG,
+    TGT_LANG,
+    load_model,
+    translate_batch,
+)
 
 load_dotenv()
 
 DEFAULT_DATASET = "s3://burkimbia-store/evaluation/references/MT/dataset"
 DEFAULT_SRC_FIELD = "src"
-DEFAULT_REF_FIELD = "reference_translation"
+DEFAULT_REF_FIELD = "reference"
 
 
 @dataclass
 class EvalConfig:
     model: str = field(default=DEFAULT_MODEL, metadata={"help": "Model name or local path"})
-    dataset: str = field(default=DEFAULT_DATASET, metadata={"help": "HF hub ID, local path, or s3:// URI"})
-    src_field: str = field(default=DEFAULT_SRC_FIELD, metadata={"help": "Dataset column for source sentences"})
-    ref_field: str = field(default=DEFAULT_REF_FIELD, metadata={"help": "Dataset column for reference translations"})
+    dataset: str = field(
+        default=DEFAULT_DATASET,
+        metadata={"help": "HF hub ID, local path, or s3:// URI"},
+    )
+    src_field: str = field(
+        default=DEFAULT_SRC_FIELD,
+        metadata={"help": "Dataset column for source sentences"},
+    )
+    ref_field: str = field(
+        default=DEFAULT_REF_FIELD,
+        metadata={"help": "Dataset column for reference translations"},
+    )
     src_lang: str = field(default=SRC_LANG, metadata={"help": "Source language code (NLLB format)"})
     tgt_lang: str = field(default=TGT_LANG, metadata={"help": "Target language code (NLLB format)"})
-    split: str | None = field(default=None, metadata={"help": "Dataset split to evaluate on (required for HF hub datasets)"})
+    split: str | None = field(
+        default=None,
+        metadata={"help": "Dataset split to evaluate on (required for HF hub datasets)"},
+    )
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
     limit: int | None = field(default=None, metadata={"help": "Evaluate on first N examples only"})
     show_samples: int = field(default=5, metadata={"help": "Print N sample translations"})
-    output: Path | str = field(default="evaluations.csv", metadata={"help": "Save predictions to this file (.csv or .jsonl)"})
-    output_format: Literal["csv", "jsonl"] = field(default="csv", metadata={"help": "Output format when --output is set"})
+    output: Path | str = field(
+        default="evaluations.csv",
+        metadata={"help": "Save predictions to this file (.csv or .jsonl)"},
+    )
+    output_format: Literal["csv", "jsonl"] = field(
+        default="csv", metadata={"help": "Output format when --output is set"}
+    )
 
 
 def build_storage_options() -> dict:
@@ -65,8 +89,7 @@ def build_storage_options() -> dict:
 
     if not key or not secret:
         raise EnvironmentError(
-            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set "
-            "(directly or via a .env file)."
+            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set (directly or via a .env file)."
         )
 
     return {
@@ -80,14 +103,43 @@ def build_storage_options() -> dict:
     }
 
 
+FLORES_PLUS = "openlanguagedata/flores_plus"
+FLORES_DEFAULT_SPLIT = "devtest"
+
+
+def _load_flores_plus(src_lang: str, tgt_lang: str, split: str) -> Dataset:
+    """Load flores_plus by merging two language configs into src/ref columns."""
+    hf_token = os.environ.get("HF_TOKEN")
+    dl_cfg = DownloadConfig(token=hf_token)
+
+    df_src = cast(
+        pd.DataFrame,
+        load_dataset(FLORES_PLUS, name=src_lang, split=split, download_config=dl_cfg).to_pandas(),  # type: ignore[union-attr]
+    ).rename(columns={"text": src_lang})
+    df_tgt = cast(
+        pd.DataFrame,
+        load_dataset(FLORES_PLUS, name=tgt_lang, split=split, download_config=dl_cfg).to_pandas(),  # type: ignore[union-attr]
+    ).rename(columns={"text": tgt_lang})
+
+    df = pd.merge(df_src, df_tgt, on="id", how="inner")
+    return Dataset.from_dict({"src": df[src_lang].tolist(), "reference_translation": df[tgt_lang].tolist()})
+
+
 def load_eval_dataset(cfg: EvalConfig) -> Dataset:
 
     if cfg.dataset.startswith("s3://"):
-        ds = cast(Dataset, load_from_disk(cfg.dataset, storage_options=build_storage_options()))
+        ds = cast(
+            Dataset,
+            load_from_disk(cfg.dataset, storage_options=build_storage_options()),
+        )
+    elif cfg.dataset == FLORES_PLUS:
+        split = cfg.split or FLORES_DEFAULT_SPLIT
+        print(f"Loading flores_plus ({cfg.src_lang} → {cfg.tgt_lang}, split={split})")
+        ds = _load_flores_plus(cfg.src_lang, cfg.tgt_lang, split)
     else:
         if cfg.split is None:
             raise ValueError("--split is required for HuggingFace hub datasets")
-        ds = load_dataset(cfg.dataset, split=cfg.split)
+        ds = cast(Dataset, load_dataset(cfg.dataset, split=cfg.split))
 
     print(f"Loaded dataset — {len(ds)} examples, columns: {ds.column_names}")
 
@@ -125,7 +177,9 @@ def save_predictions(
     print(f"Predictions saved to {path}")
 
 
-def run_evaluation(cfg: EvalConfig) -> tuple[dict[str, float], list[str], list[str], list[str]]:
+def run_evaluation(
+    cfg: EvalConfig,
+) -> tuple[dict[str, float], list[str], list[str], list[str]]:
     dataset = load_eval_dataset(cfg)
 
     sources: list[str] = dataset[cfg.src_field]
@@ -133,7 +187,11 @@ def run_evaluation(cfg: EvalConfig) -> tuple[dict[str, float], list[str], list[s
 
     print(f"\nLoading model: {cfg.model}")
     model, tokenizer = load_model(cfg.model)
-    device = next(iter(model.parameters())).device if hasattr(model, "parameters") else torch.device("cpu")
+    device = (
+        next(iter(model.parameters())).device
+        if hasattr(model, "parameters")
+        else torch.device("cpu")
+    )
     print(f"Model loaded on: {device}")
 
     bos_id = tokenizer.convert_tokens_to_ids(cfg.tgt_lang)
@@ -190,7 +248,7 @@ def main(cfg: EvalConfig) -> None:
     if cfg.show_samples > 0:
         print(f"\nSample translations (first {cfg.show_samples}):")
         for i in range(min(cfg.show_samples, len(hypotheses))):
-            print(f"\n[{i+1}] Reference : {references[i]}")
+            print(f"\n[{i + 1}] Reference : {references[i]}")
             print(f"    Hypothesis: {hypotheses[i]}")
 
 
