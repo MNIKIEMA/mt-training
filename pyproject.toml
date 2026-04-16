@@ -22,6 +22,7 @@ dependencies = [
 
 [project.scripts]
 mt-training = "mt_training:main"
+mt-backtranslate = "mt_training.backtranslate:main"
 
 [project.optional-dependencies]
 backtranslation = ["quickmt"]
