@@ -57,6 +57,10 @@ class ModelArguments:
         default=3,
         metadata={"help": "Stop training after this many evals with no improvement"},
     )
+    output_dir_root: str = field(
+        default=".",
+        metadata={"help": "Root directory under which repo_name subdirectory is created"},
+    )
 
 
 def load_and_prepare_dataset(data_args: DataTrainingArguments):
@@ -142,7 +146,7 @@ def main():
     src_tag = data_args.src_lang.split("_")[0].upper()
     tgt_tag = data_args.tgt_lang.split("_")[0].upper()
     repo_name = f"nllb-200-finetuned-600-{src_tag}-{tgt_tag}"
-    training_args.output_dir = repo_name
+    training_args.output_dir = f"{model_args.output_dir_root}/{repo_name}"
     training_args.hub_model_id = f"{model_args.hf_id}/{repo_name}"
     training_args.load_best_model_at_end = True
     training_args.metric_for_best_model = "chrf"
