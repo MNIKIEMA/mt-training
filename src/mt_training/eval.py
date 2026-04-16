@@ -70,6 +70,10 @@ class EvalConfig:
         metadata={"help": "Dataset split to evaluate on (required for HF hub datasets)"},
     )
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
+    beam_size: int = field(default=4, metadata={"help": "Beam search width (1 = greedy)"})
+    no_repeat_ngram_size: int = field(
+        default=3, metadata={"help": "Block repeated n-grams of this size (0 = disabled)"}
+    )
     limit: int | None = field(default=None, metadata={"help": "Evaluate on first N examples only"})
     show_samples: int = field(default=5, metadata={"help": "Print N sample translations"})
     output: Path | str = field(
@@ -122,7 +126,9 @@ def _load_flores_plus(src_lang: str, tgt_lang: str, split: str) -> Dataset:
     ).rename(columns={"text": tgt_lang})
 
     df = pd.merge(df_src, df_tgt, on="id", how="inner")
-    return Dataset.from_dict({"src": df[src_lang].tolist(), "reference_translation": df[tgt_lang].tolist()})
+    return Dataset.from_dict(
+        {"src": df[src_lang].tolist(), "reference_translation": df[tgt_lang].tolist()}
+    )
 
 
 def load_eval_dataset(cfg: EvalConfig) -> Dataset:
@@ -204,7 +210,17 @@ def run_evaluation(
     hypotheses: list[str] = []
     for i in tqdm(range(0, len(sources), cfg.batch_size), desc="Translating", unit="batch"):
         batch = sources[i : i + cfg.batch_size]
-        hypotheses.extend(translate_batch(batch, model, tokenizer, cfg.src_lang, cfg.tgt_lang))
+        hypotheses.extend(
+            translate_batch(
+                batch,
+                model,
+                tokenizer,
+                cfg.src_lang,
+                cfg.tgt_lang,
+                cfg.beam_size,
+                cfg.no_repeat_ngram_size,
+            )
+        )
 
     refs_wrapped = [[r] for r in references]
 

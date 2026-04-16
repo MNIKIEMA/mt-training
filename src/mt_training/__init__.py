@@ -19,5 +19,6 @@ def main() -> None:
 
     cmd = sys.argv.pop(1)
     import importlib
+
     mod = importlib.import_module(SUBCOMMANDS[cmd])
     mod.main()

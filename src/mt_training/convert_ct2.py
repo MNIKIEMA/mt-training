@@ -9,8 +9,10 @@ Usage:
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
-
+from dotenv import load_dotenv
 import draccus
+
+load_dotenv()
 
 
 @dataclass
@@ -21,7 +23,9 @@ class ConvertConfig:
     output_dir: str = field(
         metadata={"help": "Directory where the CTranslate2 model will be saved"},
     )
-    quantization: Literal["int8", "int8_float16", "int8_bfloat16", "float16", "bfloat16", "float32"] = field(
+    quantization: Literal[
+        "int8", "int8_float16", "int8_bfloat16", "float16", "bfloat16", "float32"
+    ] = field(
         default="int8",
         metadata={"help": "Weight quantization type (default: int8)"},
     )
@@ -43,9 +47,7 @@ def main(cfg: ConvertConfig) -> None:
 
     output_dir = Path(cfg.output_dir)
     if output_dir.exists() and not cfg.force:
-        raise FileExistsError(
-            f"{output_dir} already exists. Use --force to overwrite."
-        )
+        raise FileExistsError(f"{output_dir} already exists. Use --force to overwrite.")
 
     print(f"Converting: {cfg.model}")
     print(f"Output    : {output_dir}")

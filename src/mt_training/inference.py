@@ -39,18 +39,20 @@ class CT2Translator:
         tokenizer: PreTrainedTokenizerBase,
         src_lang: str,
         tgt_lang: str,
+        beam_size: int = 4,
+        no_repeat_ngram_size: int = 0,
     ) -> list[str]:
         tokenizer.src_lang = src_lang  # type: ignore[attr-defined]
         sources = [
-            tokenizer.convert_ids_to_tokens(
-                tokenizer(t, add_special_tokens=True)["input_ids"]
-            )
+            tokenizer.convert_ids_to_tokens(tokenizer(t, add_special_tokens=True)["input_ids"])
             for t in texts
         ]
         results = self._translator.translate_batch(
             sources,
             target_prefix=[[tgt_lang]] * len(texts),
             max_decoding_length=MAX_NEW_TOKENS,
+            beam_size=beam_size,
+            no_repeat_ngram_size=no_repeat_ngram_size,
         )
         outputs = []
         for r in results:
@@ -72,8 +74,12 @@ def translate(
     tokenizer: PreTrainedTokenizerBase,
     src_lang: str = SRC_LANG,
     tgt_lang: str = TGT_LANG,
+    beam_size: int = 4,
+    no_repeat_ngram_size: int = 0,
 ) -> str:
-    return translate_batch([text], model, tokenizer, src_lang, tgt_lang)[0]
+    return translate_batch(
+        [text], model, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size
+    )[0]
 
 
 def translate_batch(
@@ -82,18 +88,25 @@ def translate_batch(
     tokenizer: PreTrainedTokenizerBase,
     src_lang: str = SRC_LANG,
     tgt_lang: str = TGT_LANG,
+    beam_size: int = 4,
+    no_repeat_ngram_size: int = 0,
 ) -> list[str]:
     if isinstance(model, CT2Translator):
-        return model.translate_batch(texts, tokenizer, src_lang, tgt_lang)
+        return model.translate_batch(
+            texts, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size
+        )
 
     inputs = tokenizer(texts, src_lang=src_lang, return_tensors="pt", padding=True, truncation=True)
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
-    outputs = model.generate(
-        **inputs,
+    generate_kwargs: dict[str, object] = dict(
         forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
         max_new_tokens=MAX_NEW_TOKENS,
+        num_beams=beam_size,
         use_cache=True,
     )
+    if no_repeat_ngram_size > 0:
+        generate_kwargs["no_repeat_ngram_size"] = no_repeat_ngram_size
+    outputs = model.generate(**inputs, **generate_kwargs)
     return [str(tokenizer.decode(seq, skip_special_tokens=True)) for seq in outputs]
 
 
@@ -121,20 +134,47 @@ def main():
     parser.add_argument("--model", default=DEFAULT_MODEL, help="Model name or local path")
     parser.add_argument("--src-lang", default=SRC_LANG, help="Source language code")
     parser.add_argument("--tgt-lang", default=TGT_LANG, help="Target language code")
+    parser.add_argument("--beam-size", type=int, default=4, help="Beam search width (1 = greedy)")
+    parser.add_argument(
+        "--no-repeat-ngram-size",
+        type=int,
+        default=0,
+        help="Block repeated n-grams of this size (0 = disabled)",
+    )
     args = parser.parse_args()
 
     print(f"Loading model: {args.model}")
     model, tokenizer = load_model(args.model)
 
     if args.text:
-        print(translate(args.text, model, tokenizer, args.src_lang, args.tgt_lang))
+        print(
+            translate(
+                args.text,
+                model,
+                tokenizer,
+                args.src_lang,
+                args.tgt_lang,
+                args.beam_size,
+                args.no_repeat_ngram_size,
+            )
+        )
     else:
         print("Interactive mode — enter text to translate, Ctrl+C to quit.")
         while True:
             try:
                 text = input("> ").strip()
                 if text:
-                    print(translate(text, model, tokenizer, args.src_lang, args.tgt_lang))
+                    print(
+                        translate(
+                            text,
+                            model,
+                            tokenizer,
+                            args.src_lang,
+                            args.tgt_lang,
+                            args.beam_size,
+                            args.no_repeat_ngram_size,
+                        )
+                    )
             except (KeyboardInterrupt, EOFError):
                 break
 
