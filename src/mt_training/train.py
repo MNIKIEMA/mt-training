@@ -117,11 +117,14 @@ def build_compute_metrics(tokenizer):
         labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
         decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
         decoded_labels = [
-            [label]
-            for label in tokenizer.batch_decode(labels, skip_special_tokens=True)
+            [label] for label in tokenizer.batch_decode(labels, skip_special_tokens=True)
         ]
-        bleu_result = bleu_metric.compute(predictions=decoded_preds, references=decoded_labels) or {}  # type: ignore[union-attr]
-        chrf_result = chrf_metric.compute(predictions=decoded_preds, references=decoded_labels) or {}  # type: ignore[union-attr]
+        bleu_result = (
+            bleu_metric.compute(predictions=decoded_preds, references=decoded_labels) or {}
+        )  # type: ignore[union-attr]
+        chrf_result = (
+            chrf_metric.compute(predictions=decoded_preds, references=decoded_labels) or {}
+        )  # type: ignore[union-attr]
         return {
             "bleu": bleu_result.get("score", 0.0),
             "chrf": chrf_result.get("score", 0.0),
@@ -176,7 +179,9 @@ def main():
         train_dataset=tokenized_dataset["train"],
         eval_dataset=eval_dataset,
         compute_metrics=build_compute_metrics(tokenizer),
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience)],
+        callbacks=[
+            EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience)
+        ],
         processing_class=tokenizer,
     )
 

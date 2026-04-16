@@ -11,6 +11,7 @@ class Seq2SeqModel(Protocol):
     def generate(self, **kwargs: object) -> torch.LongTensor: ...
     def eval(self) -> "Seq2SeqModel": ...
 
+
 DEFAULT_MODEL = "madoss/nllb-200-finetuned-600-FRA-MOS"
 BASE_TOKENIZER = "facebook/nllb-200-distilled-600M"
 SRC_LANG = "fra_Latn"
@@ -18,7 +19,13 @@ TGT_LANG = "mos_Latn"
 MAX_NEW_TOKENS = 128
 
 
-def translate(text: str, model: Seq2SeqModel, tokenizer: PreTrainedTokenizerBase, src_lang: str = SRC_LANG, tgt_lang: str = TGT_LANG) -> str:
+def translate(
+    text: str,
+    model: Seq2SeqModel,
+    tokenizer: PreTrainedTokenizerBase,
+    src_lang: str = SRC_LANG,
+    tgt_lang: str = TGT_LANG,
+) -> str:
     inputs = tokenizer(text, src_lang=src_lang, return_tensors="pt")
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     outputs = model.generate(
@@ -30,7 +37,13 @@ def translate(text: str, model: Seq2SeqModel, tokenizer: PreTrainedTokenizerBase
     return str(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
 
-def translate_batch(texts: list[str], model: Seq2SeqModel, tokenizer: PreTrainedTokenizerBase, src_lang: str = SRC_LANG, tgt_lang: str = TGT_LANG) -> list[str]:
+def translate_batch(
+    texts: list[str],
+    model: Seq2SeqModel,
+    tokenizer: PreTrainedTokenizerBase,
+    src_lang: str = SRC_LANG,
+    tgt_lang: str = TGT_LANG,
+) -> list[str]:
     inputs = tokenizer(texts, src_lang=src_lang, return_tensors="pt", padding=True, truncation=True)
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     outputs = model.generate(
@@ -42,7 +55,9 @@ def translate_batch(texts: list[str], model: Seq2SeqModel, tokenizer: PreTrained
     return [str(tokenizer.decode(seq, skip_special_tokens=True)) for seq in outputs]
 
 
-def load_model(model_name: str, tokenizer_name: str = BASE_TOKENIZER) -> tuple[Seq2SeqModel, PreTrainedTokenizerBase]:
+def load_model(
+    model_name: str, tokenizer_name: str = BASE_TOKENIZER
+) -> tuple[Seq2SeqModel, PreTrainedTokenizerBase]:
     tokenizer = cast(
         PreTrainedTokenizerBase,
         AutoTokenizer.from_pretrained(tokenizer_name, src_lang=SRC_LANG, tgt_lang=TGT_LANG),
