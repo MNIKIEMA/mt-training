@@ -45,7 +45,7 @@ load_dotenv()
 
 DEFAULT_DATASET = "s3://burkimbia-store/evaluation/references/MT/dataset"
 DEFAULT_SRC_FIELD = "src"
-DEFAULT_REF_FIELD = "reference"
+DEFAULT_REF_FIELD = "reference_translation"
 
 
 @dataclass
@@ -71,6 +71,7 @@ class EvalConfig:
     )
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
     beam_size: int = field(default=4, metadata={"help": "Beam search width (1 = greedy)"})
+    max_new_tokens: int = field(default=128, metadata={"help": "Maximum number of tokens to generate"})
     no_repeat_ngram_size: int = field(
         default=3, metadata={"help": "Block repeated n-grams of this size (0 = disabled)"}
     )
@@ -219,6 +220,7 @@ def run_evaluation(
                 cfg.tgt_lang,
                 cfg.beam_size,
                 cfg.no_repeat_ngram_size,
+                cfg.max_new_tokens,
             )
         )
 

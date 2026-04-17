@@ -41,6 +41,7 @@ class CT2Translator:
         tgt_lang: str,
         beam_size: int = 4,
         no_repeat_ngram_size: int = 0,
+        max_new_tokens: int = MAX_NEW_TOKENS,
     ) -> list[str]:
         tokenizer.src_lang = src_lang  # type: ignore[attr-defined]
         sources = [
@@ -50,7 +51,7 @@ class CT2Translator:
         results = self._translator.translate_batch(
             sources,
             target_prefix=[[tgt_lang]] * len(texts),
-            max_decoding_length=MAX_NEW_TOKENS,
+            max_decoding_length=max_new_tokens,
             beam_size=beam_size,
             no_repeat_ngram_size=no_repeat_ngram_size,
         )
@@ -76,9 +77,10 @@ def translate(
     tgt_lang: str = TGT_LANG,
     beam_size: int = 4,
     no_repeat_ngram_size: int = 0,
+    max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> str:
     return translate_batch(
-        [text], model, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size
+        [text], model, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size, max_new_tokens
     )[0]
 
 
@@ -90,17 +92,18 @@ def translate_batch(
     tgt_lang: str = TGT_LANG,
     beam_size: int = 4,
     no_repeat_ngram_size: int = 0,
+    max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> list[str]:
     if isinstance(model, CT2Translator):
         return model.translate_batch(
-            texts, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size
+            texts, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size, max_new_tokens
         )
 
     inputs = tokenizer(texts, src_lang=src_lang, return_tensors="pt", padding=True, truncation=True)
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     generate_kwargs: dict[str, object] = dict(
         forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
-        max_new_tokens=MAX_NEW_TOKENS,
+        max_new_tokens=max_new_tokens,
         num_beams=beam_size,
         use_cache=True,
     )
