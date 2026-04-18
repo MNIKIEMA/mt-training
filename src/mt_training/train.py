@@ -61,6 +61,10 @@ class ModelArguments:
         default=".",
         metadata={"help": "Root directory under which repo_name subdirectory is created"},
     )
+    repo_name: str = field(
+        default="",
+        metadata={"help": "HuggingFace repo name; defaults to nllb-200-finetuned-600-{SRC}-{TGT}"},
+    )
 
 
 def load_and_prepare_dataset(data_args: DataTrainingArguments):
@@ -145,7 +149,7 @@ def main():
     )
     src_tag = data_args.src_lang.split("_")[0].upper()
     tgt_tag = data_args.tgt_lang.split("_")[0].upper()
-    repo_name = f"nllb-200-finetuned-600-{src_tag}-{tgt_tag}"
+    repo_name = model_args.repo_name or f"nllb-200-finetuned-600-{src_tag}-{tgt_tag}"
     training_args.output_dir = f"{model_args.output_dir_root}/{repo_name}"
     training_args.hub_model_id = f"{model_args.hf_id}/{repo_name}"
     training_args.load_best_model_at_end = True
