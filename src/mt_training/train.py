@@ -1,5 +1,6 @@
 from unittest.mock import patch
 from dataclasses import dataclass, field
+import trackio
 from typing import cast
 
 import evaluate
@@ -208,6 +209,8 @@ def main():
             trainer.save_metrics("test", test_res)
 
         trainer.push_to_hub()
+
+    trackio.finish()
 
 
 if __name__ == "__main__":
