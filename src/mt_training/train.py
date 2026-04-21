@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from dataclasses import dataclass, field
 from typing import cast
 
@@ -152,6 +153,7 @@ def main():
     repo_name = model_args.repo_name or f"nllb-200-finetuned-600-{src_tag}-{tgt_tag}"
     training_args.output_dir = f"{model_args.output_dir_root}/{repo_name}"
     training_args.hub_model_id = f"{model_args.hf_id}/{repo_name}"
+    training_args.run_name = training_args.run_name or repo_name
     training_args.load_best_model_at_end = True
     training_args.metric_for_best_model = "chrf"
     training_args.greater_is_better = True
@@ -196,15 +198,16 @@ def main():
         data_collator=data_collator,
     )
 
-    trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
+    with patch("trackio.finish"):
+        trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 
-    eval_res = trainer.evaluate(tokenized_dataset["validation"])
-    trainer.save_metrics("eval", eval_res)
-    if "test" in tokenized_dataset:
-        test_res = trainer.evaluate(tokenized_dataset["test"])
-        trainer.save_metrics("test", test_res)
+        eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
+        trainer.save_metrics("eval", eval_res)
+        if "test" in tokenized_dataset:
+            test_res = trainer.evaluate(tokenized_dataset["test"], metric_key_prefix="test")
+            trainer.save_metrics("test", test_res)
 
-    trainer.push_to_hub()
+        trainer.push_to_hub()
 
 
 if __name__ == "__main__":
