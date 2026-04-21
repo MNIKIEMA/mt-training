@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from transformers import (
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
+    DataCollatorForSeq2Seq,
     EarlyStoppingCallback,
     HfArgumentParser,
     PreTrainedTokenizerBase,
@@ -100,7 +101,6 @@ def build_tokenize_fn(tokenizer: PreTrainedTokenizerBase, data_args: DataTrainin
                 src_lang=src_lang,
                 tgt_lang=tgt_lang,
                 max_length=data_args.max_length,
-                padding="max_length",
                 truncation=True,
             )
             input_ids_list.append(tokenized["input_ids"])
@@ -181,6 +181,8 @@ def main():
 
     eval_dataset = tokenized_dataset["validation"].select(range(data_args.eval_subset_size))
 
+    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding=True, pad_to_multiple_of=8)
+
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
@@ -191,6 +193,7 @@ def main():
             EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience)
         ],
         processing_class=tokenizer,
+        data_collator=data_collator,
     )
 
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)

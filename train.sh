@@ -13,6 +13,7 @@ uv run python -m mt_training.train \
     --eval_steps 500 \
     --save_strategy epoch \
     --save_total_limit 3 \
+    --train_sampling_strategy group_by_length \
     --predict_with_generate \
     --gradient_checkpointing \
     --push_to_hub \
