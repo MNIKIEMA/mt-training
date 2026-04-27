@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import trackio
 from typing import cast
 
 import evaluate
