@@ -1,4 +1,3 @@
-from unittest.mock import patch
 from dataclasses import dataclass, field
 import trackio
 from typing import cast
@@ -18,6 +17,7 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
 )
+from transformers.integrations.integration_utils import TrackioCallback
 
 load_dotenv()
 
@@ -158,6 +158,10 @@ def main():
     training_args.load_best_model_at_end = True
     training_args.metric_for_best_model = "chrf"
     training_args.greater_is_better = True
+    # TODO: log post-training eval/test metrics to trackio by resuming the run after
+    # on_train_end closes it (trackio.init(resume="must") + trackio.log() + sync).
+    # Currently blocked by trackio embedding the HF token in config.json for private
+    # static spaces (upstream bug); workaround is to disable the static space sync.
 
     dataset = load_and_prepare_dataset(data_args)
 
@@ -199,18 +203,18 @@ def main():
         data_collator=data_collator,
     )
 
-    with patch("trackio.finish"):
-        trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
+    trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 
-        eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
-        trainer.save_metrics("eval", eval_res)
-        if "test" in tokenized_dataset:
-            test_res = trainer.evaluate(tokenized_dataset["test"], metric_key_prefix="test")
-            trainer.save_metrics("test", test_res)
+    # on_train_end closed the trackio session; remove the callback so post-training
+    # evaluate() calls don't raise "Call trackio.init() before trackio.log()".
+    trainer.remove_callback(TrackioCallback)
+    # eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
+    # trainer.save_metrics("eval", eval_res)
+    if "test" in tokenized_dataset:
+        test_res = trainer.evaluate(tokenized_dataset["test"], metric_key_prefix="test")
+        trainer.save_metrics("test", test_res)
 
-        trainer.push_to_hub()
-
-    trackio.finish()
+    trainer.push_to_hub()
 
 
 if __name__ == "__main__":
