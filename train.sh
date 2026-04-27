@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
-python -m mt_training.train \
+RUNNER=""
+if [ "${USE_UV:-0}" = "1" ]; then
+    RUNNER="uv run"
+fi
+${RUNNER} python -m mt_training.train \
     --num_train_epochs 5 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 32 \
@@ -10,7 +14,7 @@ python -m mt_training.train \
     --lr_scheduler_kwargs '{"min_lr": 1e-6}' \
     --warmup_steps 0.1 \
     --eval_strategy steps \
-    --eval_steps 100 \
+    --eval_steps 10 \
     --save_strategy epoch \
     --save_total_limit 3 \
     --train_sampling_strategy group_by_length \
@@ -20,8 +24,8 @@ python -m mt_training.train \
     --hub_private_repo true \
     --hub_strategy end \
     --report_to trackio \
-    # --output_dir_root /workspace/ \
     --max_steps 20 \
-    --repo_name mixed-nllb-testing \
     --run_name test-infra \
+    --repo_name mixed-nllb-testing \
+    # --output_dir_root /workspace/ \
     # --project huggingface
