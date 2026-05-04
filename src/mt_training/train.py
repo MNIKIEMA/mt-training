@@ -14,6 +14,7 @@ from transformers import (
     HfArgumentParser,
     PreTrainedTokenizerBase,
     Seq2SeqTrainer,
+    TrainerCallback,
     Seq2SeqTrainingArguments,
 )
 
@@ -145,6 +146,22 @@ def build_compute_metrics(tokenizer):
     return compute_metrics
 
 
+class TestEvaluationCallback(TrainerCallback):
+    def __init__(self, test_dataset):
+        self.test_dataset = test_dataset
+        self.trainer = None
+
+    def set_trainer(self, trainer):
+        self.trainer = trainer
+
+    def on_train_end(self, args, state, control, **kwargs):
+        if self.trainer is None or self.test_dataset is None:
+            return control
+        test_res = self.trainer.evaluate(self.test_dataset, metric_key_prefix="test")
+        self.trainer.save_metrics("test", test_res)
+        return control
+
+
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))  # ty:ignore[invalid-argument-type]
     model_args, data_args, training_args = cast(
@@ -193,6 +210,15 @@ def main():
     eval_dataset = tokenized_dataset["validation"].select(range(min(data_args.eval_subset_size, len(tokenized_dataset["validation"]))))
 
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding=True, pad_to_multiple_of=8)
+    test_dataset = None
+    if "test" in tokenized_dataset:
+        if data_args.max_train_samples > 0:
+            test_dataset = tokenized_dataset["test"].select(
+                range(min(data_args.eval_subset_size, len(tokenized_dataset["test"])))
+            )
+        else:
+            test_dataset = tokenized_dataset["test"]
+    test_eval_callback = TestEvaluationCallback(test_dataset)
 
     trainer = Seq2SeqTrainer(
         model=model,
@@ -201,11 +227,13 @@ def main():
         eval_dataset=eval_dataset,
         compute_metrics=build_compute_metrics(tokenizer),
         callbacks=[
-            EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience)
+            EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience),
+            test_eval_callback,
         ],
         processing_class=tokenizer,
         data_collator=data_collator,
     )
+    test_eval_callback.set_trainer(trainer)
 
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 
@@ -213,14 +241,6 @@ def main():
     # evaluate() calls don't raise "Call trackio.init() before trackio.log()".
     # eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
     # trainer.save_metrics("eval", eval_res)
-    if "test" in tokenized_dataset:
-        if data_args.max_train_samples > 0:
-            test_dataset = tokenized_dataset["test"].select(range(min(data_args.eval_subset_size, len(tokenized_dataset["test"]))))
-        else:
-            test_dataset = tokenized_dataset["test"]
-        test_res = trainer.evaluate(test_dataset, metric_key_prefix="test")
-        trainer.save_metrics("test", test_res)
-
     trainer.push_to_hub()
 
 
