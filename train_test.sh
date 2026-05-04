@@ -8,6 +8,7 @@ ${RUNNER} python -m mt_training.train \
     --per_device_train_batch_size 2 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
+    --max_length 64 \
     --eval_accumulation_steps 1 \
     --learning_rate 8e-5 \
     --eval_strategy steps \
