@@ -42,6 +42,10 @@ class DataTrainingArguments:
         default=500,
         metadata={"help": "Number of validation examples used for BLEU/chrF during training"},
     )
+    max_train_samples: int = field(
+        default=-1,
+        metadata={"help": "Truncate training set to this many examples before tokenization (-1 = use all)"},
+    )
 
 
 @dataclass
@@ -162,6 +166,8 @@ def main():
     # static spaces (upstream bug); workaround is to disable the static space sync.
 
     dataset = load_and_prepare_dataset(data_args)
+    if data_args.max_train_samples > 0:
+        dataset["train"] = dataset["train"].select(range(data_args.max_train_samples))
 
     tokenizer = cast(
         PreTrainedTokenizerBase,
@@ -184,7 +190,7 @@ def main():
 
     torch.cuda.empty_cache()
 
-    eval_dataset = tokenized_dataset["validation"].select(range(data_args.eval_subset_size))
+    eval_dataset = tokenized_dataset["validation"].select(range(min(data_args.eval_subset_size, len(tokenized_dataset["validation"]))))
 
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding=True, pad_to_multiple_of=8)
 
@@ -208,7 +214,11 @@ def main():
     # eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
     # trainer.save_metrics("eval", eval_res)
     if "test" in tokenized_dataset:
-        test_res = trainer.evaluate(tokenized_dataset["test"], metric_key_prefix="test")
+        if data_args.max_train_samples > 0:
+            test_dataset = tokenized_dataset["test"].select(range(min(data_args.eval_subset_size, len(tokenized_dataset["test"]))))
+        else:
+            test_dataset = tokenized_dataset["test"]
+        test_res = trainer.evaluate(test_dataset, metric_key_prefix="test")
         trainer.save_metrics("test", test_res)
 
     trainer.push_to_hub()
