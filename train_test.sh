@@ -20,6 +20,6 @@ ${RUNNER} python -m mt_training.train \
     --report_to none \
     --max_steps 20 \
     --run_name test-infra-dry-run \
-    --repo_name mixed-nllb-top200k-mt \
+    --repo_name nllb-dry-run \
     --output_dir_root /tmp/ \
     --dataset_id madoss/fr-mos-final-data
