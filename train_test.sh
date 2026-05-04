@@ -22,4 +22,4 @@ ${RUNNER} python -m mt_training.train \
     --run_name test-infra-dry-run \
     --repo_name mixed-nllb-top200k-mt \
     --output_dir_root /tmp/ \
-    --dataset_id madoss/fr-mos-final-data-nllb-top200k-dedup
+    --dataset_id madoss/fr-mos-final-data
