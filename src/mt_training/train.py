@@ -16,7 +16,6 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
 )
-from transformers.integrations.integration_utils import TrackioCallback
 
 load_dotenv()
 
@@ -206,7 +205,6 @@ def main():
 
     # on_train_end closed the trackio session; remove the callback so post-training
     # evaluate() calls don't raise "Call trackio.init() before trackio.log()".
-    trainer.remove_callback(TrackioCallback)
     # eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
     # trainer.save_metrics("eval", eval_res)
     if "test" in tokenized_dataset:

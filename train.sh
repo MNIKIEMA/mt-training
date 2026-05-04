@@ -14,8 +14,9 @@ ${RUNNER} python -m mt_training.train \
     --lr_scheduler_kwargs '{"min_lr": 1e-6}' \
     --warmup_steps 0.1 \
     --eval_strategy steps \
-    --eval_steps 10 \
-    --save_strategy epoch \
+    --eval_steps 500 \
+    --save_steps 500 \
+    --save_strategy steps \
     --save_total_limit 3 \
     --train_sampling_strategy group_by_length \
     --predict_with_generate \
@@ -24,8 +25,9 @@ ${RUNNER} python -m mt_training.train \
     --hub_private_repo true \
     --hub_strategy end \
     --report_to trackio \
-    --max_steps 20 \
+    --max_steps -1 \
     --run_name test-infra \
-    --repo_name mixed-nllb-testing \
-    # --output_dir_root /workspace/ \
+    --repo_name mixed-nllb-top200k-mt \
+    --output_dir_root /workspace/ \
+    --dataset_id madoss/fr-mos-final-data-nllb-top200k-dedup
     # --project huggingface
