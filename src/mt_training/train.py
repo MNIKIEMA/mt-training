@@ -149,16 +149,25 @@ def build_compute_metrics(tokenizer):
 class TestEvaluationCallback(TrainerCallback):
     def __init__(self, test_dataset):
         self.test_dataset = test_dataset
-        self.trainer = None
+        self.has_run = False
 
-    def set_trainer(self, trainer):
-        self.trainer = trainer
-
-    def on_train_end(self, args, state, control, **kwargs):
-        if self.trainer is None or self.test_dataset is None:
+    def on_step_end(self, args, state, control, **kwargs):
+        # Run only once, at the very end of training
+        if self.has_run:
             return control
-        test_res = self.trainer.evaluate(self.test_dataset, metric_key_prefix="test")
-        self.trainer.save_metrics("test", test_res)
+
+        if state.global_step >= state.max_steps:
+            trainer = kwargs["trainer"]
+
+            test_res = trainer.evaluate(
+                self.test_dataset,
+                metric_key_prefix="test"
+            )
+            trainer.log(test_res)
+            trainer.save_metrics("test", test_res)
+
+            self.has_run = True
+
         return control
 
 
@@ -233,7 +242,6 @@ def main():
         processing_class=tokenizer,
         data_collator=data_collator,
     )
-    test_eval_callback.set_trainer(trainer)
 
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 

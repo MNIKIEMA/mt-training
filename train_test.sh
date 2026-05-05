@@ -24,4 +24,5 @@ ${RUNNER} python -m mt_training.train \
     --repo_name nllb-dry-run \
     --output_dir_root /tmp/ \
     --dataset_id madoss/fr-mos-final-data \
-    --report_to trackio
+    --report_to trackio \
+    --trackio_space_id madoss/trackio
