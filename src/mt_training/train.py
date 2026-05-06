@@ -41,7 +41,7 @@ class DataTrainingArguments:
     )
     eval_subset_size: int = field(
         default=500,
-        metadata={"help": "Number of validation examples used for BLEU/chrF during training"},
+        metadata={"help": "Number of validation examples used for BLEU/chrF++ during training"},
     )
     max_train_samples: int = field(
         default=-1,
@@ -136,11 +136,14 @@ def build_compute_metrics(tokenizer):
             bleu_metric.compute(predictions=decoded_preds, references=decoded_labels) or {}
         )  # type: ignore[union-attr]
         chrf_result = (
-            chrf_metric.compute(predictions=decoded_preds, references=decoded_labels) or {}
+            chrf_metric.compute(
+                predictions=decoded_preds, references=decoded_labels, word_order=2
+            )
+            or {}
         )  # type: ignore[union-attr]
         return {
             "bleu": bleu_result.get("score", 0.0),
-            "chrf": chrf_result.get("score", 0.0),
+            "chrf++": chrf_result.get("score", 0.0),
         }
 
     return compute_metrics
@@ -184,7 +187,7 @@ def main():
     training_args.hub_model_id = f"{model_args.hf_id}/{repo_name}"
     training_args.run_name = training_args.run_name or repo_name
     training_args.load_best_model_at_end = True
-    training_args.metric_for_best_model = "chrf"
+    training_args.metric_for_best_model = "chrf++"
     training_args.greater_is_better = True
     # TODO: log post-training eval/test metrics to trackio by resuming the run after
     # on_train_end closes it (trackio.init(resume="must") + trackio.log() + sync).

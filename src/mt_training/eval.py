@@ -1,5 +1,5 @@
 """
-Evaluation script: load a dataset, run inference, compute BLEU/chrF/TER.
+Evaluation script: load a dataset, run inference, compute BLEU/chrF++.
 
 Usage:
     # HuggingFace hub dataset
@@ -228,16 +228,16 @@ def run_evaluation(
 
     bleu_metric = evaluate.load("sacrebleu")
     chrf_metric = evaluate.load("chrf")
-    ter_metric = evaluate.load("ter")
 
     bleu_result = bleu_metric.compute(predictions=hypotheses, references=refs_wrapped) or {}
-    chrf_result = chrf_metric.compute(predictions=hypotheses, references=refs_wrapped) or {}
-    ter_result = ter_metric.compute(predictions=hypotheses, references=refs_wrapped) or {}
+    chrf_result = (
+        chrf_metric.compute(predictions=hypotheses, references=refs_wrapped, word_order=2)
+        or {}
+    )
 
     metrics = {
         "bleu": round(bleu_result.get("score", 0.0), 2),
-        "chrf": round(chrf_result.get("score", 0.0), 2),
-        "ter": round(ter_result.get("score", 0.0), 2),
+        "chrf++": round(chrf_result.get("score", 0.0), 2),
         "num_examples": len(hypotheses),
     }
     return metrics, sources, hypotheses, references
@@ -254,8 +254,7 @@ def main(cfg: EvalConfig) -> None:
     print(f"  Dataset     : {cfg.dataset}")
     print(f"  Examples    : {metrics['num_examples']}")
     print(f"  BLEU        : {metrics['bleu']}")
-    print(f"  chrF        : {metrics['chrf']}")
-    print(f"  TER         : {metrics['ter']}")
+    print(f"  chrF++      : {metrics['chrf++']}")
     print("=" * 50)
 
     if cfg.output is not None:
