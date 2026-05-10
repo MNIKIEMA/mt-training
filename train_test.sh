@@ -18,11 +18,9 @@ ${RUNNER} python -m mt_training.train \
     --eval_subset_size 10 \
     --train_sampling_strategy group_by_length \
     --predict_with_generate \
-    --report_to none \
     --max_steps 200 \
     --run_name test-infra-dry-run \
     --repo_name nllb-dry-run \
     --output_dir_root /tmp/ \
     --dataset_id madoss/fr-mos-final-data \
-    --report_to trackio \
-    --trackio_space_id madoss/trackio
+    --report_to wandb

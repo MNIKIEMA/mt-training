@@ -24,7 +24,7 @@ ${RUNNER} python -m mt_training.train \
     --push_to_hub \
     --hub_private_repo true \
     --hub_strategy end \
-    --report_to trackio \
+    --report_to wandb \
     --max_steps -1 \
     --run_name test-infra \
     --repo_name mixed-nllb-top200k-mt \

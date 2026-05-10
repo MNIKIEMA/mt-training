@@ -189,10 +189,6 @@ def main():
     training_args.load_best_model_at_end = True
     training_args.metric_for_best_model = "chrf++"
     training_args.greater_is_better = True
-    # TODO: log post-training eval/test metrics to trackio by resuming the run after
-    # on_train_end closes it (trackio.init(resume="must") + trackio.log() + sync).
-    # Currently blocked by trackio embedding the HF token in config.json for private
-    # static spaces (upstream bug); workaround is to disable the static space sync.
 
     dataset = load_and_prepare_dataset(data_args)
     if data_args.max_train_samples > 0:
@@ -248,8 +244,6 @@ def main():
 
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 
-    # on_train_end closed the trackio session; remove the callback so post-training
-    # evaluate() calls don't raise "Call trackio.init() before trackio.log()".
     # eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
     # trainer.save_metrics("eval", eval_res)
     trainer.push_to_hub()
