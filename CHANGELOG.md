@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Replaced Trackio experiment reporting with Weights & Biases to avoid the
+  Trackio/Hugging Face Hub push failure tracked in
+  <https://github.com/gradio-app/trackio/issues/544>.
+
 ## [0.1.0] - 2026-05-09
 
 Initial release of `mt-training`, a toolkit for fine-tuning and evaluating
