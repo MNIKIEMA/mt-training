@@ -71,7 +71,9 @@ class EvalConfig:
     )
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
     beam_size: int = field(default=4, metadata={"help": "Beam search width (1 = greedy)"})
-    max_new_tokens: int = field(default=128, metadata={"help": "Maximum number of tokens to generate"})
+    max_new_tokens: int = field(
+        default=128, metadata={"help": "Maximum number of tokens to generate"}
+    )
     no_repeat_ngram_size: int = field(
         default=3, metadata={"help": "Block repeated n-grams of this size (0 = disabled)"}
     )
@@ -231,8 +233,7 @@ def run_evaluation(
 
     bleu_result = bleu_metric.compute(predictions=hypotheses, references=refs_wrapped) or {}
     chrf_result = (
-        chrf_metric.compute(predictions=hypotheses, references=refs_wrapped, word_order=2)
-        or {}
+        chrf_metric.compute(predictions=hypotheses, references=refs_wrapped, word_order=2) or {}
     )
 
     metrics = {

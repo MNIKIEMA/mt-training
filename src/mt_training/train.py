@@ -45,7 +45,9 @@ class DataTrainingArguments:
     )
     max_train_samples: int = field(
         default=-1,
-        metadata={"help": "Truncate training set to this many examples before tokenization (-1 = use all)"},
+        metadata={
+            "help": "Truncate training set to this many examples before tokenization (-1 = use all)"
+        },
     )
 
 
@@ -136,9 +138,7 @@ def build_compute_metrics(tokenizer):
             bleu_metric.compute(predictions=decoded_preds, references=decoded_labels) or {}
         )  # type: ignore[union-attr]
         chrf_result = (
-            chrf_metric.compute(
-                predictions=decoded_preds, references=decoded_labels, word_order=2
-            )
+            chrf_metric.compute(predictions=decoded_preds, references=decoded_labels, word_order=2)
             or {}
         )  # type: ignore[union-attr]
         return {
@@ -162,10 +162,7 @@ class TestEvaluationCallback(TrainerCallback):
         if state.global_step >= state.max_steps:
             trainer = kwargs["trainer"]
 
-            test_res = trainer.evaluate(
-                self.test_dataset,
-                metric_key_prefix="test"
-            )
+            test_res = trainer.evaluate(self.test_dataset, metric_key_prefix="test")
             trainer.log(test_res)
             trainer.save_metrics("test", test_res)
 
@@ -215,9 +212,13 @@ def main():
 
     torch.cuda.empty_cache()
 
-    eval_dataset = tokenized_dataset["validation"].select(range(min(data_args.eval_subset_size, len(tokenized_dataset["validation"]))))
+    eval_dataset = tokenized_dataset["validation"].select(
+        range(min(data_args.eval_subset_size, len(tokenized_dataset["validation"])))
+    )
 
-    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding=True, pad_to_multiple_of=8)
+    data_collator = DataCollatorForSeq2Seq(
+        tokenizer, model=model, padding=True, pad_to_multiple_of=8
+    )
     test_dataset = None
     if "test" in tokenized_dataset:
         if data_args.max_train_samples > 0:

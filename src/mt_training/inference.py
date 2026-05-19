@@ -80,7 +80,14 @@ def translate(
     max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> str:
     return translate_batch(
-        [text], model, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size, max_new_tokens
+        [text],
+        model,
+        tokenizer,
+        src_lang,
+        tgt_lang,
+        beam_size,
+        no_repeat_ngram_size,
+        max_new_tokens,
     )[0]
 
 
