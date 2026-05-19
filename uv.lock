@@ -13,6 +13,10 @@ resolution-markers = [
     "python_full_version < '3.13' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer-span = "P1W"
+
 [[package]]
 name = "accelerate"
 version = "1.13.0"
@@ -1321,6 +1325,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
+    { name = "ctranslate2" },
     { name = "datasets" },
     { name = "draccus" },
     { name = "evaluate" },
@@ -1336,9 +1341,6 @@ dependencies = [
 backtranslation = [
     { name = "quickmt" },
 ]
-ctranslate2 = [
-    { name = "ctranslate2" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -1348,7 +1350,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "accelerate", specifier = ">=1.13.0" },
-    { name = "ctranslate2", marker = "extra == 'ctranslate2'" },
+    { name = "ctranslate2" },
     { name = "datasets", specifier = ">=4.8.4" },
     { name = "draccus", specifier = ">=0.11.5" },
     { name = "evaluate", specifier = ">=0.4.6" },
@@ -1360,7 +1362,7 @@ requires-dist = [
     { name = "transformers", specifier = ">=5.5.0" },
     { name = "wandb", specifier = ">=0.23.0" },
 ]
-provides-extras = ["backtranslation", "ctranslate2"]
+provides-extras = ["backtranslation"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ipykernel", specifier = ">=7.2.0" }]

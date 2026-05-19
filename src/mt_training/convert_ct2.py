@@ -42,7 +42,7 @@ def main(cfg: ConvertConfig) -> None:
     except ImportError as e:
         raise ImportError(
             "ctranslate2 is required for model conversion. "
-            "Install it with: uv sync --extra ctranslate2"
+            "Install project dependencies with: uv sync"
         ) from e
 
     output_dir = Path(cfg.output_dir)

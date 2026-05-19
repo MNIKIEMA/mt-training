@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 from typing import Protocol, cast
 
+import ctranslate2
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, PreTrainedTokenizerBase
 
@@ -24,13 +25,6 @@ class CT2Translator:
     """Wraps a CTranslate2 Translator to match the translate_batch interface."""
 
     def __init__(self, model_path: str, device: str = "auto") -> None:
-        try:
-            import ctranslate2
-        except ImportError as e:
-            raise ImportError(
-                "ctranslate2 is required for CT2 inference. "
-                "Install it with: uv sync --extra ctranslate2"
-            ) from e
         self._translator = ctranslate2.Translator(model_path, device=device)
 
     def translate_batch(
