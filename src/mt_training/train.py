@@ -1,5 +1,9 @@
+from contextlib import nullcontext
 from dataclasses import dataclass, field
+from importlib.util import find_spec
+from pathlib import Path
 from typing import cast
+from unittest.mock import patch
 
 import evaluate
 import numpy as np
@@ -14,8 +18,15 @@ from transformers import (
     HfArgumentParser,
     PreTrainedTokenizerBase,
     Seq2SeqTrainer,
-    TrainerCallback,
     Seq2SeqTrainingArguments,
+)
+
+from mt_training.eval import (
+    DEFAULT_DATASET,
+    FLORES_DEFAULT_SPLIT,
+    FLORES_PLUS,
+    EvalConfig,
+    run_evaluation,
 )
 
 load_dotenv()
@@ -72,6 +83,10 @@ class ModelArguments:
     repo_name: str = field(
         default="",
         metadata={"help": "HuggingFace repo name; defaults to nllb-200-finetuned-600-{SRC}-{TGT}"},
+    )
+    ct2_quantization: str = field(
+        default="int8",
+        metadata={"help": "CTranslate2 quantization for post-training evaluation"},
     )
 
 
@@ -149,26 +164,95 @@ def build_compute_metrics(tokenizer):
     return compute_metrics
 
 
-class TestEvaluationCallback(TrainerCallback):
-    def __init__(self, test_dataset):
-        self.test_dataset = test_dataset
-        self.has_run = False
+def wandb_finish_context(report_to):
+    if isinstance(report_to, str):
+        report_to = [report_to]
 
-    def on_step_end(self, args, state, control, **kwargs):
-        # Run only once, at the very end of training
-        if self.has_run:
-            return control
+    if report_to and ("wandb" in report_to or "all" in report_to) and find_spec("wandb"):
+        return patch("wandb.finish")
 
-        if state.global_step >= state.max_steps:
-            trainer = kwargs["trainer"]
+    return nullcontext()
 
-            test_res = trainer.evaluate(self.test_dataset, metric_key_prefix="test")
-            trainer.log(test_res)
-            trainer.save_metrics("test", test_res)
 
-            self.has_run = True
+def convert_to_ct2(model_dir: str, output_dir: str, quantization: str) -> str:
+    import ctranslate2
 
-        return control
+    converter = ctranslate2.converters.TransformersConverter(
+        model_dir,
+        low_cpu_mem_usage=True,
+    )
+    return str(converter.convert(output_dir, quantization=quantization, force=True))
+
+
+def log_metrics_to_wandb(metrics: dict[str, float], prefix: str) -> None:
+    if not find_spec("wandb"):
+        return
+
+    import wandb
+
+    if wandb.run is None:
+        return
+
+    wandb.log({f"{prefix}/{key}": value for key, value in metrics.items()})
+
+
+def evaluate_test_split(trainer, tokenized_dataset) -> None:
+    if "test" not in tokenized_dataset:
+        return
+
+    metrics = trainer.evaluate(tokenized_dataset["test"], metric_key_prefix="test")
+    trainer.save_metrics("test", metrics)
+    log_metrics_to_wandb(metrics, "test")
+
+
+def finish_wandb_run() -> None:
+    if not find_spec("wandb"):
+        return
+
+    import wandb
+
+    if wandb.run is not None:
+        wandb.finish()
+
+
+def run_post_training_ct2_evaluations(model_args, data_args, training_args, trainer) -> None:
+    trainer.save_model(training_args.output_dir)
+    ct2_output_dir = f"{Path(training_args.output_dir)}-ct2"
+    ct2_model = convert_to_ct2(
+        training_args.output_dir,
+        ct2_output_dir,
+        model_args.ct2_quantization,
+    )
+
+    evals = [
+        (
+            "s3_eval",
+            EvalConfig(
+                model=ct2_model,
+                dataset=DEFAULT_DATASET,
+                src_lang=data_args.src_lang,
+                tgt_lang=data_args.tgt_lang,
+            ),
+        ),
+        (
+            "flores_plus",
+            EvalConfig(
+                model=ct2_model,
+                dataset=FLORES_PLUS,
+                src_lang=data_args.src_lang,
+                tgt_lang=data_args.tgt_lang,
+                split=FLORES_DEFAULT_SPLIT,
+            ),
+        ),
+    ]
+
+    saved_metrics: dict[str, float] = {}
+    for prefix, cfg in evals:
+        metrics, _, _, _ = run_evaluation(cfg)
+        log_metrics_to_wandb(metrics, prefix)
+        saved_metrics.update({f"{prefix}_{key}": value for key, value in metrics.items()})
+
+    trainer.save_metrics("post_training_ct2_eval", saved_metrics)
 
 
 def main():
@@ -219,16 +303,6 @@ def main():
     data_collator = DataCollatorForSeq2Seq(
         tokenizer, model=model, padding=True, pad_to_multiple_of=8
     )
-    test_dataset = None
-    if "test" in tokenized_dataset:
-        if data_args.max_train_samples > 0:
-            test_dataset = tokenized_dataset["test"].select(
-                range(min(data_args.eval_subset_size, len(tokenized_dataset["test"])))
-            )
-        else:
-            test_dataset = tokenized_dataset["test"]
-    test_eval_callback = TestEvaluationCallback(test_dataset)
-
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
@@ -237,17 +311,20 @@ def main():
         compute_metrics=build_compute_metrics(tokenizer),
         callbacks=[
             EarlyStoppingCallback(early_stopping_patience=model_args.early_stopping_patience),
-            test_eval_callback,
         ],
         processing_class=tokenizer,
         data_collator=data_collator,
     )
 
-    trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
+    with wandb_finish_context(training_args.report_to):
+        trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 
-    # eval_res = trainer.evaluate(tokenized_dataset["validation"], metric_key_prefix="eval_final")
-    # trainer.save_metrics("eval", eval_res)
-    trainer.push_to_hub()
+    try:
+        evaluate_test_split(trainer, tokenized_dataset)
+        run_post_training_ct2_evaluations(model_args, data_args, training_args, trainer)
+        trainer.push_to_hub()
+    finally:
+        finish_wandb_run()
 
 
 if __name__ == "__main__":
