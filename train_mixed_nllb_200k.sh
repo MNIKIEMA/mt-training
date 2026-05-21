@@ -4,7 +4,7 @@ if [ "${USE_UV:-0}" = "1" ]; then
     RUNNER="uv run"
 fi
 ${RUNNER} python -m mt_training.train \
-    --num_train_epochs 5 \
+    --num_train_epochs 8 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 32 \
     --gradient_accumulation_steps 8 \
@@ -29,4 +29,5 @@ ${RUNNER} python -m mt_training.train \
     --run_name test-infra \
     --repo_name mixed-nllb-top200k-mt \
     --output_dir_root /workspace/ \
+    --dataset_id madoss/fr-mos-final-data-nllb-top200k-dedup \
     --project nllb-moore-web
