@@ -1,3 +1,5 @@
+import logging
+import os
 from contextlib import nullcontext
 from dataclasses import dataclass, field
 from importlib.util import find_spec
@@ -30,6 +32,7 @@ from mt_training.eval import (
 )
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -50,9 +53,18 @@ class DataTrainingArguments:
         default=256,
         metadata={"help": "Max token length for source and target sequences"},
     )
-    eval_subset_size: int = field(
-        default=500,
+    validation_size: int = field(
+        default=100,
         metadata={"help": "Number of validation examples used for BLEU/chrF++ during training"},
+    )
+    post_training_eval_limit: int = field(
+        default=-1,
+        metadata={
+            "help": (
+                "Limit each post-training CT2 eval to this many examples "
+                "(-1 = evaluate the full dataset)"
+            )
+        },
     )
     max_train_samples: int = field(
         default=-1,
@@ -196,11 +208,25 @@ def log_metrics_to_wandb(metrics: dict[str, float], prefix: str) -> None:
     wandb.log({f"{prefix}/{key}": value for key, value in metrics.items()})
 
 
-def evaluate_test_split(trainer, tokenized_dataset) -> None:
+def evaluate_test_split(trainer, tokenized_dataset, data_args) -> None:
     if "test" not in tokenized_dataset:
+        logger.info("Skipping test split eval: no test split found")
         return
 
-    metrics = trainer.evaluate(tokenized_dataset["test"], metric_key_prefix="test")
+    test_dataset = tokenized_dataset["test"]
+    if data_args.post_training_eval_limit > 0:
+        test_dataset = test_dataset.select(
+            range(min(data_args.post_training_eval_limit, len(test_dataset)))
+        )
+
+    logger.info(
+        "Running test split eval on %s samples (limit=%s)",
+        len(test_dataset),
+        data_args.post_training_eval_limit
+        if data_args.post_training_eval_limit > 0
+        else "all",
+    )
+    metrics = trainer.evaluate(test_dataset, metric_key_prefix="test")
     trainer.save_metrics("test", metrics)
     log_metrics_to_wandb(metrics, "test")
 
@@ -224,6 +250,10 @@ def run_post_training_ct2_evaluations(model_args, data_args, training_args, trai
         model_args.ct2_quantization,
     )
 
+    eval_limit = (
+        data_args.post_training_eval_limit if data_args.post_training_eval_limit > 0 else None
+    )
+
     evals = [
         (
             "s3_eval",
@@ -232,6 +262,7 @@ def run_post_training_ct2_evaluations(model_args, data_args, training_args, trai
                 dataset=DEFAULT_DATASET,
                 src_lang=data_args.src_lang,
                 tgt_lang=data_args.tgt_lang,
+                limit=eval_limit,
             ),
         ),
         (
@@ -242,12 +273,19 @@ def run_post_training_ct2_evaluations(model_args, data_args, training_args, trai
                 src_lang=data_args.src_lang,
                 tgt_lang=data_args.tgt_lang,
                 split=FLORES_DEFAULT_SPLIT,
+                limit=eval_limit,
             ),
         ),
     ]
 
     saved_metrics: dict[str, float] = {}
     for prefix, cfg in evals:
+        logger.info(
+            "Running post-training CT2 eval %s on %s (limit=%s)",
+            prefix,
+            cfg.dataset,
+            cfg.limit if cfg.limit is not None else "all",
+        )
         metrics, _, _, _ = run_evaluation(cfg)
         log_metrics_to_wandb(metrics, prefix)
         saved_metrics.update({f"{prefix}_{key}": value for key, value in metrics.items()})
@@ -270,6 +308,7 @@ def main():
     training_args.load_best_model_at_end = True
     training_args.metric_for_best_model = "chrf++"
     training_args.greater_is_better = True
+    os.environ.setdefault("WANDB_PROJECT", training_args.project)
 
     dataset = load_and_prepare_dataset(data_args)
     if data_args.max_train_samples > 0:
@@ -297,7 +336,7 @@ def main():
     torch.cuda.empty_cache()
 
     eval_dataset = tokenized_dataset["validation"].select(
-        range(min(data_args.eval_subset_size, len(tokenized_dataset["validation"])))
+        range(min(data_args.validation_size, len(tokenized_dataset["validation"])))
     )
 
     data_collator = DataCollatorForSeq2Seq(
@@ -320,7 +359,7 @@ def main():
         trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
 
     try:
-        evaluate_test_split(trainer, tokenized_dataset)
+        evaluate_test_split(trainer, tokenized_dataset, data_args)
         run_post_training_ct2_evaluations(model_args, data_args, training_args, trainer)
         trainer.push_to_hub()
     finally:

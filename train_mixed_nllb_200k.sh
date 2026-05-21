@@ -15,6 +15,7 @@ ${RUNNER} python -m mt_training.train \
     --warmup_steps 0.1 \
     --eval_strategy steps \
     --eval_steps 500 \
+    --validation_size 100 \
     --save_steps 500 \
     --save_strategy steps \
     --save_total_limit 3 \

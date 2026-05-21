@@ -15,7 +15,8 @@ ${RUNNER} python -m mt_training.train \
     --eval_steps 10 \
     --save_strategy no \
     --max_train_samples 64 \
-    --eval_subset_size 10 \
+    --validation_size 10 \
+    --post_training_eval_limit 10 \
     --train_sampling_strategy group_by_length \
     --predict_with_generate \
     --max_steps 200 \
@@ -23,4 +24,5 @@ ${RUNNER} python -m mt_training.train \
     --repo_name nllb-dry-run \
     --output_dir_root /tmp/ \
     --dataset_id madoss/fr-mos-final-data \
-    --report_to wandb
+    --report_to wandb \
+    --project nllb-moore-web
