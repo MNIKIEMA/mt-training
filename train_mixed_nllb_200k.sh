@@ -15,7 +15,7 @@ ${RUNNER} python -m mt_training.train \
     --warmup_steps 0.1 \
     --eval_strategy steps \
     --eval_steps 500 \
-    --validation_size 100 \
+    --validation_size 500 \
     --save_steps 500 \
     --save_strategy steps \
     --save_total_limit 3 \
@@ -27,7 +27,7 @@ ${RUNNER} python -m mt_training.train \
     --hub_strategy end \
     --report_to wandb \
     --max_steps -1 \
-    --run_name test-infra \
+    --run_name mixed-nllb-top200k-result \
     --repo_name mixed-nllb-top200k-mt \
     --output_dir_root /workspace/ \
     --dataset_id madoss/fr-mos-final-data-nllb-top200k-dedup \
