@@ -24,7 +24,6 @@ from transformers import (
 )
 
 from mt_training.eval import (
-    DEFAULT_DATASET,
     FLORES_DEFAULT_SPLIT,
     FLORES_PLUS,
     EvalConfig,
@@ -255,16 +254,6 @@ def run_post_training_ct2_evaluations(model_args, data_args, training_args, trai
     )
 
     evals = [
-        (
-            "s3_eval",
-            EvalConfig(
-                model=ct2_model,
-                dataset=DEFAULT_DATASET,
-                src_lang=data_args.src_lang,
-                tgt_lang=data_args.tgt_lang,
-                limit=eval_limit,
-            ),
-        ),
         (
             "flores_plus",
             EvalConfig(
