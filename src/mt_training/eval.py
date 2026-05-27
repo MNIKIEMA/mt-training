@@ -2,20 +2,11 @@
 Evaluation script: load a dataset, run inference, compute BLEU/chrF++.
 
 Usage:
-    # HuggingFace hub dataset
-    python -m mt_training.eval --dataset madoss/fr-mos-final-data --src_field french --ref_field moore
-
-    # S3/Tigris Arrow dataset (requires AWS env vars)
-    python -m mt_training.eval --dataset s3://burkimbia-store/evaluation/references/MT/dataset
+    # FLORES+ devtest
+    python -m mt_training.eval
 
     # From a YAML config file
     python -m mt_training.eval --config eval_config.yaml
-
-Required env vars for S3 datasets (or .env file):
-    AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY
-    AWS_ENDPOINT_URL_S3       (e.g. https://fly.storage.tigris.dev)
-    AWS_REGION                (e.g. auto)
 """
 
 import csv
@@ -29,7 +20,7 @@ import draccus
 import evaluate
 import pandas as pd
 import torch
-from datasets import Dataset, DownloadConfig, load_dataset, load_from_disk
+from datasets import Dataset, DownloadConfig, load_dataset
 from dotenv import load_dotenv
 from tqdm import tqdm
 
@@ -43,7 +34,8 @@ from mt_training.inference import (
 
 load_dotenv()
 
-DEFAULT_DATASET = "s3://burkimbia-store/evaluation/references/MT/dataset"
+FLORES_PLUS = "openlanguagedata/flores_plus"
+FLORES_DEFAULT_SPLIT = "devtest"
 DEFAULT_SRC_FIELD = "src"
 DEFAULT_REF_FIELD = "reference_translation"
 
@@ -52,8 +44,8 @@ DEFAULT_REF_FIELD = "reference_translation"
 class EvalConfig:
     model: str = field(default=DEFAULT_MODEL, metadata={"help": "Model name or local path"})
     dataset: str = field(
-        default=DEFAULT_DATASET,
-        metadata={"help": "HF hub ID, local path, or s3:// URI"},
+        default=FLORES_PLUS,
+        metadata={"help": "FLORES+ dataset ID"},
     )
     src_field: str = field(
         default=DEFAULT_SRC_FIELD,
@@ -67,7 +59,7 @@ class EvalConfig:
     tgt_lang: str = field(default=TGT_LANG, metadata={"help": "Target language code (NLLB format)"})
     split: str | None = field(
         default=None,
-        metadata={"help": "Dataset split to evaluate on (required for HF hub datasets)"},
+        metadata={"help": "FLORES+ split to evaluate on"},
     )
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
     beam_size: int = field(default=4, metadata={"help": "Beam search width (1 = greedy)"})
@@ -86,32 +78,6 @@ class EvalConfig:
     output_format: Literal["csv", "jsonl"] = field(
         default="csv", metadata={"help": "Output format when --output is set"}
     )
-
-
-def build_storage_options() -> dict:
-    key = os.environ.get("AWS_ACCESS_KEY_ID")
-    secret = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    endpoint = os.environ.get("AWS_ENDPOINT_URL_S3", "https://fly.storage.tigris.dev")
-    region = os.environ.get("AWS_REGION", "auto")
-
-    if not key or not secret:
-        raise EnvironmentError(
-            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set (directly or via a .env file)."
-        )
-
-    return {
-        "key": key,
-        "secret": secret,
-        "endpoint_url": endpoint,
-        "client_kwargs": {
-            "endpoint_url": endpoint,
-            "region_name": region,
-        },
-    }
-
-
-FLORES_PLUS = "openlanguagedata/flores_plus"
-FLORES_DEFAULT_SPLIT = "devtest"
 
 
 def _load_flores_plus(src_lang: str, tgt_lang: str, split: str) -> Dataset:
@@ -135,20 +101,12 @@ def _load_flores_plus(src_lang: str, tgt_lang: str, split: str) -> Dataset:
 
 
 def load_eval_dataset(cfg: EvalConfig) -> Dataset:
+    if cfg.dataset != FLORES_PLUS:
+        raise ValueError(f"Only {FLORES_PLUS} is supported; got {cfg.dataset!r}")
 
-    if cfg.dataset.startswith("s3://"):
-        ds = cast(
-            Dataset,
-            load_from_disk(cfg.dataset, storage_options=build_storage_options()),
-        )
-    elif cfg.dataset == FLORES_PLUS:
-        split = cfg.split or FLORES_DEFAULT_SPLIT
-        print(f"Loading flores_plus ({cfg.src_lang} → {cfg.tgt_lang}, split={split})")
-        ds = _load_flores_plus(cfg.src_lang, cfg.tgt_lang, split)
-    else:
-        if cfg.split is None:
-            raise ValueError("--split is required for HuggingFace hub datasets")
-        ds = cast(Dataset, load_dataset(cfg.dataset, split=cfg.split))
+    split = cfg.split or FLORES_DEFAULT_SPLIT
+    print(f"Loading flores_plus ({cfg.src_lang} → {cfg.tgt_lang}, split={split})")
+    ds = _load_flores_plus(cfg.src_lang, cfg.tgt_lang, split)
 
     print(f"Loaded dataset — {len(ds)} examples, columns: {ds.column_names}")
 
