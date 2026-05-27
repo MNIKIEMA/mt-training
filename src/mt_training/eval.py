@@ -5,6 +5,9 @@ Usage:
     # FLORES+ devtest
     python -m mt_training.eval
 
+    # HuggingFace hub dataset
+    python -m mt_training.eval --dataset madoss/fr-mos-final-data --split test --src_field french --ref_field moore
+
     # From a YAML config file
     python -m mt_training.eval --config eval_config.yaml
 """
@@ -45,7 +48,7 @@ class EvalConfig:
     model: str = field(default=DEFAULT_MODEL, metadata={"help": "Model name or local path"})
     dataset: str = field(
         default=FLORES_PLUS,
-        metadata={"help": "FLORES+ dataset ID"},
+        metadata={"help": "FLORES+ dataset ID or HuggingFace hub dataset ID"},
     )
     src_field: str = field(
         default=DEFAULT_SRC_FIELD,
@@ -59,7 +62,7 @@ class EvalConfig:
     tgt_lang: str = field(default=TGT_LANG, metadata={"help": "Target language code (NLLB format)"})
     split: str | None = field(
         default=None,
-        metadata={"help": "FLORES+ split to evaluate on"},
+        metadata={"help": "Dataset split to evaluate on (defaults to devtest for FLORES+)"},
     )
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
     beam_size: int = field(default=4, metadata={"help": "Beam search width (1 = greedy)"})
@@ -101,12 +104,14 @@ def _load_flores_plus(src_lang: str, tgt_lang: str, split: str) -> Dataset:
 
 
 def load_eval_dataset(cfg: EvalConfig) -> Dataset:
-    if cfg.dataset != FLORES_PLUS:
-        raise ValueError(f"Only {FLORES_PLUS} is supported; got {cfg.dataset!r}")
-
-    split = cfg.split or FLORES_DEFAULT_SPLIT
-    print(f"Loading flores_plus ({cfg.src_lang} → {cfg.tgt_lang}, split={split})")
-    ds = _load_flores_plus(cfg.src_lang, cfg.tgt_lang, split)
+    if cfg.dataset == FLORES_PLUS:
+        split = cfg.split or FLORES_DEFAULT_SPLIT
+        print(f"Loading flores_plus ({cfg.src_lang} → {cfg.tgt_lang}, split={split})")
+        ds = _load_flores_plus(cfg.src_lang, cfg.tgt_lang, split)
+    else:
+        if cfg.split is None:
+            raise ValueError("--split is required for HuggingFace hub datasets")
+        ds = cast(Dataset, load_dataset(cfg.dataset, split=cfg.split))
 
     print(f"Loaded dataset — {len(ds)} examples, columns: {ds.column_names}")
 
