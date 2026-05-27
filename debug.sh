@@ -11,6 +11,7 @@ ${RUNNER} python -m mt_training.train \
     --max_length 64 \
     --eval_accumulation_steps 1 \
     --learning_rate 8e-5 \
+    --logging_steps 10 \
     --eval_strategy steps \
     --eval_steps 10 \
     --save_strategy no \

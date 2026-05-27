@@ -13,6 +13,7 @@ ${RUNNER} python -m mt_training.train \
     --lr_scheduler_type cosine_with_min_lr \
     --lr_scheduler_kwargs '{"min_lr": 1e-6}' \
     --warmup_steps 0.1 \
+    --logging_steps 20 \
     --eval_strategy steps \
     --eval_steps 500 \
     --validation_size 500 \
@@ -32,4 +33,3 @@ ${RUNNER} python -m mt_training.train \
     --output_dir_root /workspace/ \
     --dataset_id madoss/fr-mos-final-data-backtranslated-merged \
     --project nllb-moore-web
-
