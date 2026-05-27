@@ -207,6 +207,14 @@ def log_metrics_to_wandb(metrics: dict[str, float], prefix: str) -> None:
     wandb.log({f"{prefix}/{key}": value for key, value in metrics.items()})
 
 
+def strip_metric_prefix(metrics: dict[str, float], prefix: str) -> dict[str, float]:
+    metric_prefix = f"{prefix}_"
+    return {
+        key.removeprefix(metric_prefix): value
+        for key, value in metrics.items()
+    }
+
+
 def evaluate_test_split(trainer, tokenized_dataset, data_args) -> None:
     if "test" not in tokenized_dataset:
         logger.info("Skipping test split eval: no test split found")
@@ -227,7 +235,7 @@ def evaluate_test_split(trainer, tokenized_dataset, data_args) -> None:
     )
     metrics = trainer.evaluate(test_dataset, metric_key_prefix="test")
     trainer.save_metrics("test", metrics)
-    log_metrics_to_wandb(metrics, "test")
+    log_metrics_to_wandb(strip_metric_prefix(metrics, "test"), "test")
 
 
 def finish_wandb_run() -> None:
