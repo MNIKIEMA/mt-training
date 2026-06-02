@@ -3,22 +3,20 @@ RUNNER=""
 if [ "${USE_UV:-0}" = "1" ]; then
     RUNNER="uv run"
 fi
-${RUNNER} python -m mt_training.train \
-    --num_train_epochs 5 \
-    --per_device_train_batch_size 16 \
-    --per_device_eval_batch_size 32 \
-    --gradient_accumulation_steps 8 \
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ${RUNNER} python -m mt_training.train \
+    --num_train_epochs 8 \
+    --per_device_train_batch_size 64 \
+    --per_device_eval_batch_size 128 \
+    --gradient_accumulation_steps 2 \
     --eval_accumulation_steps 1 \
     --learning_rate 1e-4 \
     --lr_scheduler_type cosine_with_min_lr \
     --lr_scheduler_kwargs '{"min_lr": 1e-6}' \
     --warmup_steps 0.1 \
     --logging_steps 20 \
-    --eval_strategy steps \
-    --eval_steps 500 \
+    --eval_strategy epoch \
     --validation_size 500 \
-    --save_steps 500 \
-    --save_strategy steps \
+    --save_strategy epoch \
     --save_total_limit 3 \
     --train_sampling_strategy group_by_length \
     --predict_with_generate \
@@ -29,6 +27,6 @@ ${RUNNER} python -m mt_training.train \
     --report_to wandb \
     --max_steps -1 \
     --run_name final-data-result \
-    --repo_name mixed-nllb-top200k-mt \
+    --repo_name nllb-600m-FrMos \
     --output_dir_root /workspace/ \
     --project nllb-moore-web
