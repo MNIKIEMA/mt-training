@@ -100,14 +100,16 @@ def translate_batch(
             texts, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size, max_new_tokens
         )
 
-    inputs = tokenizer(texts, src_lang=src_lang, return_tensors="pt", padding=True, truncation=True)
+    # NLLB ignores src_lang passed to __call__: set it on the tokenizer, as the CT2 path does.
+    tokenizer.src_lang = src_lang  # type: ignore[attr-defined]
+    inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
-    generate_kwargs: dict[str, object] = dict(
-        forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
-        max_new_tokens=max_new_tokens,
-        num_beams=beam_size,
-        use_cache=True,
-    )
+    generate_kwargs: dict[str, object] = {
+        "forced_bos_token_id": tokenizer.convert_tokens_to_ids(tgt_lang),
+        "max_new_tokens": max_new_tokens,
+        "num_beams": beam_size,
+        "use_cache": True,
+    }
     if no_repeat_ngram_size > 0:
         generate_kwargs["no_repeat_ngram_size"] = no_repeat_ngram_size
     outputs = model.generate(**inputs, **generate_kwargs)
