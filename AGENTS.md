@@ -1,0 +1,146 @@
+# AGENTS.md
+
+This repo fine-tunes and evaluates NLLB-200 for French -> Moore translation.
+
+Work like a small, careful research engineer. Keep changes simple. Prefer a boring
+working training run over a clever abstraction.
+
+## The Shape Of The Repo
+
+- `src/mt_training/train.py`: training entrypoint. Uses Hugging Face `Seq2SeqTrainer`.
+- `src/mt_training/eval.py`: dataset loading, translation, BLEU, and chrF++ evaluation.
+- `src/mt_training/inference.py`: HF and CTranslate2 inference helpers.
+- `src/mt_training/convert_ct2.py`: converts a HF seq2seq checkpoint to CTranslate2.
+- `src/mt_training/backtranslate.py`: backtranslation dataset generation.
+- `train.sh`: default full training run.
+- `train_mixed_nllb_200k.sh`: mixed/top200k synthetic data training run.
+- `train_backtranslated.sh`: backtranslated merged data training run.
+- `debug.sh`: small dry-run training script.
+
+## Commands
+
+Use `uv` unless there is a good reason not to.
+
+```bash
+uv sync
+uv run python -m mt_training.train --help
+uv run python -m mt_training.eval --help
+uv run python -m mt_training.inference "Bonjour le monde"
+```
+
+Fast checks:
+
+```bash
+python3 -m py_compile src/mt_training/train.py src/mt_training/eval.py src/mt_training/inference.py
+sh -n train.sh debug.sh train_mixed_nllb_200k.sh train_backtranslated.sh
+```
+
+Project checks, when available:
+
+```bash
+just lint
+just format
+just test
+just typecheck
+```
+
+## Training Contract
+
+Training is expensive. Do not casually run full training.
+
+Use `debug.sh` for smoke tests. Full scripts are intended for GPU/RunPod-style
+environments and push results to the Hub.
+
+The trainer should:
+
+- keep the W&B run open through post-training eval;
+- evaluate the in-domain `test` split when present;
+- convert the trained model to CTranslate2 for fast external evaluation;
+- evaluate FLORES+ `devtest`;
+- log metrics to W&B;
+- save metrics locally;
+- push the final HF model to the Hub.
+
+Default external eval dataset:
+
+```python
+FLORES_PLUS = "openlanguagedata/flores_plus"
+FLORES_DEFAULT_SPLIT = "devtest"
+```
+
+## Metrics
+
+Keep metric names stable. W&B grouping matters.
+
+- In-domain trainer test metrics: `test/...`
+- FLORES+ CT2 metrics: `flores_plus/...`
+
+Primary metrics are BLEU and chrF++. chrF++ is especially important for model
+selection and low-resource MT signal.
+
+## Data Assumptions
+
+Training datasets are expected to contain:
+
+- `source`
+- `french`
+- `moore`
+
+The training code renames:
+
+- `source` -> `data_source`
+- `french` -> `source`
+- `moore` -> `target`
+
+Do not silently change these column contracts. If a dataset has a different
+schema, make the mapping explicit.
+
+FLORES+ may need `HF_TOKEN`.
+
+## Style
+
+- Python target: 3.12.
+- Line length: 100.
+- First-party imports: `mt_training`.
+- Prefer typed dataclass config fields for CLI arguments.
+- Keep shell scripts POSIX `sh`.
+- Keep generated model artifacts and experiment outputs out of commits unless
+  explicitly requested.
+
+## Editing Rules
+
+- Make the smallest change that preserves the intended experiment.
+- Do not delete or rewrite experiment notes unless asked.
+- Do not change training hyperparameters casually. Script changes can alter
+  expensive runs.
+- If touching post-training evaluation, preserve the comparison between
+  in-domain `test` and out-of-domain FLORES+.
+- If touching CT2, verify both conversion and inference call sites.
+- If touching W&B logging, keep `wandb.finish()` after post-training eval and
+  Hub push.
+
+## Logbooks
+
+`.agents/logbooks/` records findings and decisions per module (training,
+evaluation/inference, synthetic data) and the scores of full runs
+(`experiments.md`). Read the relevant logbook before changing a module, and
+add a dated entry (newest on top) when a run or a fix teaches something.
+Format and index: `.agents/logbooks/README.md`.
+
+## Git Hygiene
+
+The repo often has untracked experiment files. Do not sweep them into commits.
+
+Before committing:
+
+```bash
+git status --short
+git diff --cached --stat
+```
+
+Commit only the files requested or the files clearly required by the task.
+
+## What Good Looks Like
+
+A good change here is easy to run, easy to compare, and easy to recover from.
+It leaves behind clear metrics, stable scripts, and no mystery state.
