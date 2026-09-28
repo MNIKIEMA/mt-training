@@ -27,6 +27,28 @@ AWS_REGION=auto
 Trains `facebook/nllb-200-distilled-600M` on [`madoss/moore-web-parallel`](https://huggingface.co/datasets/madoss/moore-web-parallel)
 (config `mos-fra`, pinned to `v1.0.0`) and pushes to the Hub.
 
+Extra arguments are passed through to training, and override the script's
+own values: `./scripts/train.sh --output_dir_root ./runs/`.
+
+### On Modal
+
+`scripts/modal_train.py` runs any script from `scripts/` on a Modal GPU
+(default A100-80GB), with outputs on the `mt-training-outputs` volume.
+
+```bash
+# once (uses the workspace secrets huggingface-secret and wandb-secret)
+uvx modal setup
+
+# smoke test, then a detached full run
+uvx modal run scripts/modal_train.py --script debug.sh
+uvx modal run --detach scripts/modal_train.py --script train.sh
+
+# get the CTranslate2 model
+uvx modal volume get mt-training-outputs nllb-600m-FrMos-ct2 ./nllb-600m-FrMos-ct2
+```
+
+See the docstring of `scripts/modal_train.py` for resuming and choosing the GPU.
+
 ## Inference
 
 ```bash

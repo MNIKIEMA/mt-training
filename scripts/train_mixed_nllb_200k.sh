@@ -30,4 +30,5 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ${RUNNER} python -m mt_training
     --repo_name mixed-nllb-top200k-mt \
     --output_dir_root /workspace/ \
     --dataset_id madoss/fr-mos-final-data-nllb-top200k-dedup \
-    --project nllb-moore-web
+    --project nllb-moore-web \
+    "$@"

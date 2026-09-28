@@ -16,6 +16,7 @@ working training run over a clever abstraction.
 - `scripts/train_mixed_nllb_200k.sh`: mixed/top200k synthetic data training run.
 - `scripts/train_backtranslated.sh`: backtranslated merged data training run.
 - `scripts/debug.sh`: small dry-run training script.
+- `scripts/modal_train.py`: runs any of the scripts above on a Modal GPU, outputs on a Modal Volume.
 
 ## Commands
 

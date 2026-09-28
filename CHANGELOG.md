@@ -4,8 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `scripts/modal_train.py` runs a training script on a Modal GPU: image
+  built from `uv.lock`, outputs and HF cache on Modal Volumes, `HF_TOKEN`
+  and `WANDB_API_KEY` from the `huggingface-secret` and `wandb-secret` Modal Secrets, detached runs up to 24 h.
+
 ### Changed
 
+- The run scripts forward extra arguments (`"$@"`) to training; a repeated
+  option overrides the script's value (e.g. `--output_dir_root`).
 - Moved the run scripts (`train.sh`, `debug.sh`, `train_mixed_nllb_200k.sh`,
   `train_backtranslated.sh`) to `scripts/`: run `./scripts/train.sh`. They
   work from the repository root as before.

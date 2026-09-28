@@ -1,0 +1,101 @@
+"""Run a training script from scripts/ on a Modal GPU.
+
+The container runs the same shell script as RunPod, with outputs redirected to
+a Modal Volume so checkpoints, the final model and the CTranslate2 model
+survive the container.
+
+One-time setup (from your own terminal):
+
+    uvx modal setup
+
+Secrets: the workspace-wide `huggingface-secret` (HF_TOKEN) and `wandb-secret`
+(WANDB_API_KEY) are attached to the function. Modal injects only the secrets a
+function lists, so a new secret must be added to SECRETS below.
+
+Run from the repository root:
+
+    # smoke test (small, ~minutes)
+    uvx modal run scripts/modal_train.py --script debug.sh
+
+    # full run, detached: keeps going after you close the terminal
+    uvx modal run --detach scripts/modal_train.py --script train.sh
+
+    # resume after a timeout or failure
+    uvx modal run --detach scripts/modal_train.py --script train.sh \
+        --extra-args "--resume_from_checkpoint /outputs/nllb-600m-FrMos/checkpoint-1234"
+
+    # fetch results
+    uvx modal volume ls mt-training-outputs
+    uvx modal volume get mt-training-outputs nllb-600m-FrMos-ct2 ./nllb-600m-FrMos-ct2
+
+GPU type: set MODAL_GPU when launching (default A100-80GB), e.g.
+MODAL_GPU=A100-40GB uvx modal run ...
+"""
+
+import os
+import shlex
+import subprocess
+from pathlib import Path
+
+import modal
+
+ROOT = Path(__file__).resolve().parents[1]
+REMOTE_ROOT = "/root/mt-training"
+OUTPUTS = "/outputs"
+CACHE = "/cache"
+
+image = (
+    modal.Image.debian_slim(python_version="3.12")
+    # Dependencies from uv.lock (frozen); the project itself is added below so code
+    # changes don't rebuild the dependency layer.
+    .uv_sync(uv_project_dir=str(ROOT))
+    .env(
+        {
+            "HF_HOME": f"{CACHE}/huggingface",
+            "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
+            "PYTHONPATH": f"{REMOTE_ROOT}/src",
+        }
+    )
+    .add_local_dir(ROOT / "src", f"{REMOTE_ROOT}/src")
+    .add_local_dir(ROOT / "scripts", f"{REMOTE_ROOT}/scripts", ignore=["*.py"])
+)
+
+app = modal.App("mt-training", image=image)
+outputs = modal.Volume.from_name("mt-training-outputs", create_if_missing=True)
+cache = modal.Volume.from_name("mt-training-hf-cache", create_if_missing=True)
+SECRETS = [
+    modal.Secret.from_name("huggingface-secret", required_keys=["HF_TOKEN"]),
+    modal.Secret.from_name("wandb-secret", required_keys=["WANDB_API_KEY"]),
+]
+
+
+@app.function(
+    gpu=os.environ.get("MODAL_GPU", "A100-80GB"),
+    volumes={OUTPUTS: outputs, CACHE: cache},
+    secrets=SECRETS,
+    timeout=24 * 60 * 60,
+    # A retry would restart training from scratch; resume from a checkpoint instead.
+    retries=0,
+)
+def train(script: str, extra_args: str = "") -> None:
+    cmd = [
+        "sh",
+        f"scripts/{script}",
+        # Later occurrences of an option override the script's own values.
+        "--output_dir_root",
+        f"{OUTPUTS}/",
+        *shlex.split(extra_args),
+    ]
+    print("Running:", shlex.join(cmd), flush=True)
+    try:
+        subprocess.run(cmd, cwd=REMOTE_ROOT, check=True)
+    finally:
+        outputs.commit()
+        cache.commit()
+
+
+@app.local_entrypoint()
+def main(script: str = "debug.sh", extra_args: str = "") -> None:
+    if not (ROOT / "scripts" / script).is_file():
+        raise SystemExit(f"No such script: scripts/{script}")
+    train.remote(script, extra_args)

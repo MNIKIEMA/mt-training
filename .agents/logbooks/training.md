@@ -6,6 +6,30 @@ validation subset during training (chrF++ picks the best checkpoint), then
 runs the in-domain `test` split, CTranslate2 conversion and FLORES+ (see
 [evaluation-inference.md](evaluation-inference.md)).
 
+## 2026-09-28 (Modal)
+
+- **Training can run on Modal** with `scripts/modal_train.py`, which runs
+  the same shell scripts as RunPod. Workarounds: scripts now forward `"$@"`
+  and a repeated option wins (checked with `HfArgumentParser`), so Modal
+  passes `--output_dir_root /outputs/` instead of the hard-coded
+  `/workspace/`; outputs and the HF cache live on Modal Volumes
+  (`mt-training-outputs`, `mt-training-hf-cache`); secrets come from the
+  workspace's `huggingface-secret` (`HF_TOKEN`) and `wandb-secret`
+  (`WANDB_API_KEY`). Modal injects only the secrets a function lists in
+  `secrets=[...]`, so a general secret is not available until it is named
+  there. `Image.uv_sync` installs from `uv.lock` and puts
+  its venv first on `PATH`, so the scripts' plain `python` works.
+- **No automatic retries**: a retry restarts from step 0 and pays twice.
+  Resume with `--extra-args "--resume_from_checkpoint /outputs/<repo>/checkpoint-N"`.
+- **`debug.sh` ran end to end on Modal** (A100-80GB): training with 8
+  in-training evals, in-domain `test` eval, model save, CT2 conversion to
+  `/outputs/nllb-dry-run-ct2` on the volume, FLORES+ (10 examples), W&B run
+  in `BIA-TEXT/nllb-moore-web`, no Hub push. Next: `train.sh` detached.
+- **"early stopping required metric_for_best_model, but did not find
+  eval_chrf++"** is logged by the post-training `test` eval: its metrics are
+  `test_*`, so `EarlyStoppingCallback` skips that one call. Harmless;
+  training is already over.
+
 ## 2026-09-28 (moore-web-parallel v1.0.0)
 
 - **Default dataset is now `madoss/moore-web-parallel`**, config `mos-fra`,

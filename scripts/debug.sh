@@ -28,4 +28,5 @@ ${RUNNER} python -m mt_training.train \
     --dataset_config mos-fra \
     --dataset_revision v1.0.0 \
     --report_to wandb \
-    --project nllb-moore-web
+    --project nllb-moore-web \
+    "$@"
