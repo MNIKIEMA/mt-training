@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Moved the run scripts (`train.sh`, `debug.sh`, `train_mixed_nllb_200k.sh`,
+  `train_backtranslated.sh`) to `scripts/`: run `./scripts/train.sh`. They
+  work from the repository root as before.
+
 - New `--model_dtype` option (e.g. `bfloat16`) to load the model weights in a
   lower precision. Off by default. Meant for smoke tests on small GPUs: on a
   4 GB RTX 3050 the pipeline runs with `--model_dtype bfloat16 --optim sgd

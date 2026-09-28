@@ -11,10 +11,10 @@ logbooks have the *why* and the numbers.
 A logbook maps 1:1 to a module or workflow, not to a single run. Scores of
 full runs all go in `experiments.md`, so runs can be compared in one place.
 
-- [`training.md`](training.md) -- `train.py`, `train.sh`, `debug.sh` (NLLB fine-tuning with `Seq2SeqTrainer`, dataset loading, tokenization, in-training eval, Hub push).
+- [`training.md`](training.md) -- `train.py`, `scripts/train.sh`, `scripts/debug.sh` (NLLB fine-tuning with `Seq2SeqTrainer`, dataset loading, tokenization, in-training eval, Hub push).
 - [`evaluation-inference.md`](evaluation-inference.md) -- `eval.py`, `inference.py`, `convert_ct2.py` (BLEU/chrF++, FLORES+, HF and CTranslate2 translation).
 - [`experiments.md`](experiments.md) -- all training scripts (scores of full runs, hypotheses, planned experiments; converted from `exp_res.md`).
-- [`synthetic-data.md`](synthetic-data.md) -- `backtranslate.py`, `merge_datasets.py`, `train_mixed_nllb_200k.sh`, `train_backtranslated.sh` (synthetic and backtranslated data experiments).
+- [`synthetic-data.md`](synthetic-data.md) -- `backtranslate.py`, `merge_datasets.py`, `scripts/train_mixed_nllb_200k.sh`, `scripts/train_backtranslated.sh` (synthetic and backtranslated data experiments).
 
 Add a new logbook when a new module or workflow is added, not for each run.
 

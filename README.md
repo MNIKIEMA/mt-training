@@ -21,7 +21,7 @@ AWS_REGION=auto
 ## Training
 
 ```bash
-./train.sh
+./scripts/train.sh
 ```
 
 Trains `facebook/nllb-200-distilled-600M` on [`madoss/moore-web-parallel`](https://huggingface.co/datasets/madoss/moore-web-parallel)

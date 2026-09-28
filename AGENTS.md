@@ -12,10 +12,10 @@ working training run over a clever abstraction.
 - `src/mt_training/inference.py`: HF and CTranslate2 inference helpers.
 - `src/mt_training/convert_ct2.py`: converts a HF seq2seq checkpoint to CTranslate2.
 - `src/mt_training/backtranslate.py`: backtranslation dataset generation.
-- `train.sh`: default full training run.
-- `train_mixed_nllb_200k.sh`: mixed/top200k synthetic data training run.
-- `train_backtranslated.sh`: backtranslated merged data training run.
-- `debug.sh`: small dry-run training script.
+- `scripts/train.sh`: default full training run.
+- `scripts/train_mixed_nllb_200k.sh`: mixed/top200k synthetic data training run.
+- `scripts/train_backtranslated.sh`: backtranslated merged data training run.
+- `scripts/debug.sh`: small dry-run training script.
 
 ## Commands
 
@@ -32,7 +32,7 @@ Fast checks:
 
 ```bash
 python3 -m py_compile src/mt_training/train.py src/mt_training/eval.py src/mt_training/inference.py
-sh -n train.sh debug.sh train_mixed_nllb_200k.sh train_backtranslated.sh
+sh -n scripts/*.sh
 ```
 
 Project checks, when available:
@@ -48,7 +48,7 @@ just typecheck
 
 Training is expensive. Do not casually run full training.
 
-Use `debug.sh` for smoke tests. Full scripts are intended for GPU/RunPod-style
+Use `scripts/debug.sh` for smoke tests. Full scripts are intended for GPU/RunPod-style
 environments and push results to the Hub.
 
 The trainer should:

@@ -38,7 +38,7 @@ timestamps of the prediction files next to it.
 - **More data made the model worse**, on both sets and all metrics.
   Training data: the 33,835 rows of `fr-mos-final-data` plus 200k rows from
   NLLB's en → mos training data, English side translated to French with
-  HY-MT. Script `train_mixed_nllb_200k.sh`.
+  HY-MT. Script `scripts/train_mixed_nllb_200k.sh`.
 
   | Model | FLORES+ BLEU / chrF / TER | S3 ref BLEU / chrF / TER |
   | --- | --- | --- |

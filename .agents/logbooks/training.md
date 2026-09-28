@@ -1,4 +1,4 @@
-# Training (`train.py`, `train.sh`, `debug.sh`)
+# Training (`train.py`, `scripts/train.sh`, `scripts/debug.sh`)
 
 Fine-tunes `facebook/nllb-200-distilled-600M` for French → Mooré with
 `Seq2SeqTrainer`: loads a Hub dataset, tokenizes, evaluates BLEU/chrF++ on a

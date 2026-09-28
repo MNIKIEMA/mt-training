@@ -1,4 +1,4 @@
-# Synthetic and backtranslated data (`backtranslate.py`, `merge_datasets.py`, `train_mixed_nllb_200k.sh`, `train_backtranslated.sh`)
+# Synthetic and backtranslated data (`backtranslate.py`, `merge_datasets.py`, `scripts/train_mixed_nllb_200k.sh`, `scripts/train_backtranslated.sh`)
 
 Experiments adding non-authentic French–Mooré pairs to the ~34k authentic
 ones: NLLB's en → mos training data with the English side translated to
