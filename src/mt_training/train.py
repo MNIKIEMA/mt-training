@@ -107,6 +107,15 @@ class ModelArguments:
         default="int8",
         metadata={"help": "CTranslate2 quantization for post-training evaluation"},
     )
+    model_dtype: str | None = field(
+        default=None,
+        metadata={
+            "help": (
+                "Load the model weights in this dtype (e.g. bfloat16) to fit small GPUs; "
+                "None = float32. Pure bf16 weights are for smoke tests, not real runs."
+            )
+        },
+    )
 
 
 def load_and_prepare_dataset(data_args: DataTrainingArguments):
@@ -305,7 +314,10 @@ def main():
         ),
     )
     model = AutoModelForSeq2SeqLM.from_pretrained(
-        model_args.model_name, device_map="auto", use_cache=False
+        model_args.model_name,
+        device_map="auto",
+        use_cache=False,
+        dtype=getattr(torch, model_args.model_dtype) if model_args.model_dtype else None,
     )
 
     tokenized_dataset = dataset.map(
@@ -346,7 +358,8 @@ def main():
     try:
         evaluate_test_split(trainer, tokenized_dataset, data_args)
         run_post_training_ct2_evaluations(model_args, data_args, training_args, trainer)
-        trainer.push_to_hub()
+        if training_args.push_to_hub:
+            trainer.push_to_hub()
     finally:
         finish_wandb_run()
 

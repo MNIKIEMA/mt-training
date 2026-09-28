@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- New `--model_dtype` option (e.g. `bfloat16`) to load the model weights in a
+  lower precision. Off by default. Meant for smoke tests on small GPUs: on a
+  4 GB RTX 3050 the pipeline runs with `--model_dtype bfloat16 --optim sgd
+  --gradient_checkpointing --max_length 64`, with the CTranslate2 conversion
+  and FLORES+ eval run separately (training plus conversion exceed 7.5 GB RAM).
 - Train on `madoss/moore-web-parallel` (config `mos-fra`) by default. New
   `--dataset_config` and `--dataset_revision` options; `train.sh` and
   `debug.sh` pin `v1.0.0`.
@@ -20,6 +25,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- `main()` pushed the model to the Hub even without `--push_to_hub`, so
+  `debug.sh` uploaded to `madoss/nllb-dry-run`. The push now follows the
+  flag; `train.sh` and the other full-run scripts pass it.
 - HF inference now sets `tokenizer.src_lang` before tokenizing, as the
   CTranslate2 path already did. Passing `src_lang` to the tokenizer call was
   ignored, so a non-default `--src_lang` still encoded the input as
