@@ -24,7 +24,8 @@ AWS_REGION=auto
 ./train.sh
 ```
 
-Trains `facebook/nllb-200-distilled-600M` on the `madoss/fr-mos-final-data` dataset and pushes to the Hub.
+Trains `facebook/nllb-200-distilled-600M` on [`madoss/moore-web-parallel`](https://huggingface.co/datasets/madoss/moore-web-parallel)
+(config `mos-fra`, pinned to `v1.0.0`) and pushes to the Hub.
 
 ## Inference
 
@@ -44,7 +45,7 @@ uv run python -m mt_training.eval
 
 # Against a HuggingFace dataset
 uv run python -m mt_training.eval \
-    --dataset madoss/fr-mos-final-data \
+    --dataset madoss/moore-web-parallel \
     --src_field french \
     --ref_field moore \
     --split test

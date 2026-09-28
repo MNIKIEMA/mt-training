@@ -29,4 +29,7 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ${RUNNER} python -m mt_training
     --run_name final-data-result \
     --repo_name nllb-600m-FrMos \
     --output_dir_root /workspace/ \
+    --dataset_id madoss/moore-web-parallel \
+    --dataset_config mos-fra \
+    --dataset_revision v1.0.0 \
     --project nllb-moore-web

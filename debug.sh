@@ -24,6 +24,8 @@ ${RUNNER} python -m mt_training.train \
     --run_name test-infra-dry-run \
     --repo_name nllb-dry-run \
     --output_dir_root /tmp/ \
-    --dataset_id madoss/fr-mos-final-data \
+    --dataset_id madoss/moore-web-parallel \
+    --dataset_config mos-fra \
+    --dataset_revision v1.0.0 \
     --report_to wandb \
     --project nllb-moore-web

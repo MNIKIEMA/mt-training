@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Train on `madoss/moore-web-parallel` (config `mos-fra`) by default. New
+  `--dataset_config` and `--dataset_revision` options; `train.sh` and
+  `debug.sh` pin `v1.0.0`.
+- Tokenize whole batches with the tokenizer's own `src_lang`/`tgt_lang`.
+  The per-row `src_lang`/`tgt_lang` passed to the tokenizer call were
+  silently ignored by NLLB (tokens were still `fra_Latn`/`mos_Latn`, so past
+  runs were unaffected), and the per-row loop was slow.
+- The in-training validation subset (`--validation_size`) is now a seeded
+  shuffle of the validation split instead of its first rows, which can be
+  grouped by source (in `moore-web-parallel` v1.0.0 the first 500 rows are
+  64% `conseils` and contain no MAFAND).
+
+### Fixed
+
+- HF inference now sets `tokenizer.src_lang` before tokenizing, as the
+  CTranslate2 path already did. Passing `src_lang` to the tokenizer call was
+  ignored, so a non-default `--src_lang` still encoded the input as
+  `fra_Latn`. The default French → Mooré direction was unaffected.
+
 - Replaced Trackio experiment reporting with Weights & Biases to avoid the
   Trackio/Hugging Face Hub push failure tracked in
   <https://github.com/gradio-app/trackio/issues/544>.

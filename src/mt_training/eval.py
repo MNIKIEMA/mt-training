@@ -6,7 +6,7 @@ Usage:
     python -m mt_training.eval
 
     # HuggingFace hub dataset
-    python -m mt_training.eval --dataset madoss/fr-mos-final-data --split test --src_field french --ref_field moore
+    python -m mt_training.eval --dataset madoss/moore-web-parallel --split test --src_field french --ref_field moore
 
     # From a YAML config file
     python -m mt_training.eval --config eval_config.yaml

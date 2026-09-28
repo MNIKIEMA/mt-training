@@ -37,8 +37,16 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DataTrainingArguments:
     dataset_id: str = field(
-        default="madoss/fr-mos-final-data",
+        default="madoss/moore-web-parallel",
         metadata={"help": "HuggingFace dataset ID"},
+    )
+    dataset_config: str | None = field(
+        default=None,
+        metadata={"help": "Dataset config name (e.g. mos-fra); None for single-config datasets"},
+    )
+    dataset_revision: str | None = field(
+        default=None,
+        metadata={"help": "Dataset tag or commit to pin (e.g. v1.0.0); None = latest"},
     )
     src_lang: str = field(
         default="fra_Latn",
@@ -102,48 +110,30 @@ class ModelArguments:
 
 
 def load_and_prepare_dataset(data_args: DataTrainingArguments):
-    dataset = load_dataset(data_args.dataset_id)
+    dataset = load_dataset(
+        data_args.dataset_id,
+        name=data_args.dataset_config,
+        revision=data_args.dataset_revision,
+    )
     dataset = dataset.rename_column("source", "data_source")
     dataset = dataset.rename_column("french", "source")
-    dataset = dataset.rename_column("moore", "target")
-
-    def add_language_info(example):
-        example["source_lang"] = data_args.src_lang
-        example["target_lang"] = data_args.tgt_lang
-        return example
-
-    return dataset.map(add_language_info)
+    return dataset.rename_column("moore", "target")
 
 
 def build_tokenize_fn(tokenizer: PreTrainedTokenizerBase, data_args: DataTrainingArguments):
+    # The language tokens come from the tokenizer's src_lang/tgt_lang, set in main().
+    # The NLLB tokenizer silently ignores src_lang/tgt_lang passed to __call__.
     def tokenize_fn(examples):
-        input_ids_list = []
-        attention_mask_list = []
-        labels_list = []
-
-        for src, tgt, src_lang, tgt_lang in zip(
+        tokenized = tokenizer(
             examples["source"],
-            examples["target"],
-            examples["source_lang"],
-            examples["target_lang"],
-            strict=True,
-        ):
-            tokenized = tokenizer(
-                src,
-                text_target=tgt,
-                src_lang=src_lang,
-                tgt_lang=tgt_lang,
-                max_length=data_args.max_length,
-                truncation=True,
-            )
-            input_ids_list.append(tokenized["input_ids"])
-            attention_mask_list.append(tokenized["attention_mask"])
-            labels_list.append(tokenized["labels"])
-
+            text_target=examples["target"],
+            max_length=data_args.max_length,
+            truncation=True,
+        )
         return {
-            "input_ids": input_ids_list,
-            "attention_mask": attention_mask_list,
-            "labels": labels_list,
+            "input_ids": tokenized["input_ids"],
+            "attention_mask": tokenized["attention_mask"],
+            "labels": tokenized["labels"],
         }
 
     return tokenize_fn
@@ -209,10 +199,7 @@ def log_metrics_to_wandb(metrics: dict[str, float], prefix: str) -> None:
 
 def strip_metric_prefix(metrics: dict[str, float], prefix: str) -> dict[str, float]:
     metric_prefix = f"{prefix}_"
-    return {
-        key.removeprefix(metric_prefix): value
-        for key, value in metrics.items()
-    }
+    return {key.removeprefix(metric_prefix): value for key, value in metrics.items()}
 
 
 def evaluate_test_split(trainer, tokenized_dataset, data_args) -> None:
@@ -229,9 +216,7 @@ def evaluate_test_split(trainer, tokenized_dataset, data_args) -> None:
     logger.info(
         "Running test split eval on %s samples (limit=%s)",
         len(test_dataset),
-        data_args.post_training_eval_limit
-        if data_args.post_training_eval_limit > 0
-        else "all",
+        data_args.post_training_eval_limit if data_args.post_training_eval_limit > 0 else "all",
     )
     metrics = trainer.evaluate(test_dataset, metric_key_prefix="test")
     trainer.save_metrics("test", metrics)
@@ -332,8 +317,11 @@ def main():
 
     torch.cuda.empty_cache()
 
-    eval_dataset = tokenized_dataset["validation"].select(
-        range(min(data_args.validation_size, len(tokenized_dataset["validation"])))
+    # Shuffle before taking the subset: splits can be stored grouped by source.
+    eval_dataset = (
+        tokenized_dataset["validation"]
+        .shuffle(seed=training_args.seed)
+        .select(range(min(data_args.validation_size, len(tokenized_dataset["validation"]))))
     )
 
     data_collator = DataCollatorForSeq2Seq(
