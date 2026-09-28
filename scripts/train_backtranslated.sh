@@ -20,6 +20,8 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ${RUNNER} python -m mt_training
     --save_total_limit 3 \
     --train_sampling_strategy group_by_length \
     --predict_with_generate \
+    --bf16 \
+    --tf32 true \
     --gradient_checkpointing \
     --push_to_hub \
     --hub_private_repo true \

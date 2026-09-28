@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Train in bf16 mixed precision with TF32 (`--bf16 --tf32 true`) in all run
+  scripts. Runs were full fp32 before, which leaves most of an A100 unused;
+  weights and optimizer state stay fp32. Needs an Ampere or newer GPU.
 - The run scripts forward extra arguments (`"$@"`) to training; a repeated
   option overrides the script's value (e.g. `--output_dir_root`).
 - Moved the run scripts (`train.sh`, `debug.sh`, `train_mixed_nllb_200k.sh`,

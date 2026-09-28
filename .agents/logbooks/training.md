@@ -6,6 +6,21 @@ validation subset during training (chrF++ picks the best checkpoint), then
 runs the in-domain `test` split, CTranslate2 conversion and FLORES+ (see
 [evaluation-inference.md](evaluation-inference.md)).
 
+## 2026-09-28 (bf16)
+
+- **Every run so far was full fp32**: no script ever passed `--bf16` or
+  `--fp16`, and TF32 was off (PyTorch default for matmul). All scripts now
+  pass `--bf16 --tf32 true`: mixed precision, fp32 master weights and
+  optimizer state, bf16 compute. bf16 rather than fp16 because it has fp32's
+  range (no overflow, no loss scaling). Not `--model_dtype bfloat16`, which
+  stores the weights in bf16 and is for small-GPU smoke tests only.
+- **Checked on Modal A100-80GB with `debug.sh`**: loss 4.68 → 1.73 over the
+  run, no NaN; full pipeline to FLORES+ ran. Speed-up and effect on scores
+  not measured yet: compare the next `train.sh` with the fp32 runs in
+  [experiments.md](experiments.md) (different data too, so not a clean A/B).
+- **Needs Ampere or newer** (A100, RTX 30xx/40xx): `--tf32` fails on older
+  GPUs.
+
 ## 2026-09-28 (Modal)
 
 - **Training can run on Modal** with `scripts/modal_train.py`, which runs
