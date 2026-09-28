@@ -29,9 +29,9 @@ from dataclasses import dataclass, field
 from typing import cast
 
 from datasets import Dataset, load_dataset
+from dotenv import load_dotenv
 from huggingface_hub import snapshot_download
 from transformers import HfArgumentParser
-from dotenv import load_dotenv
 
 load_dotenv()
 try:
