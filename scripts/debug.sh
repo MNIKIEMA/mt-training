@@ -3,6 +3,9 @@ RUNNER=""
 if [ "${USE_UV:-0}" = "1" ]; then
     RUNNER="uv run"
 fi
+# Smoke tests exercise the W&B code path without uploading a run.
+# Override with WANDB_MODE=online ./scripts/debug.sh
+export WANDB_MODE="${WANDB_MODE:-offline}"
 ${RUNNER} python -m mt_training.train \
     --num_train_epochs 1 \
     --per_device_train_batch_size 2 \

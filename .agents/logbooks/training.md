@@ -6,6 +6,15 @@ validation subset during training (chrF++ picks the best checkpoint), then
 runs the in-domain `test` split, CTranslate2 conversion and FLORES+ (see
 [evaluation-inference.md](evaluation-inference.md)).
 
+## 2026-09-28 (W&B offline for smoke tests)
+
+- **`debug.sh` sets `WANDB_MODE=offline` unless already set.** The two
+  Modal smoke tests had uploaded `test-infra-dry-run` runs to
+  `BIA-TEXT/nllb-moore-web`, mixing them with real runs. Offline still
+  exercises the W&B code path (init, logging, `finish()`). On Modal the
+  container doesn't inherit local env vars, so smoke tests there are
+  offline too.
+
 ## 2026-09-28 (bf16)
 
 - **Every run so far was full fp32**: no script ever passed `--bf16` or

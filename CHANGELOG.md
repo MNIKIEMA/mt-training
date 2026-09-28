@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- `scripts/debug.sh` runs W&B offline by default (`WANDB_MODE=offline`), so
+  smoke tests no longer upload runs to the project; set `WANDB_MODE=online`
+  to upload one.
 - Train in bf16 mixed precision with TF32 (`--bf16 --tf32 true`) in all run
   scripts. Runs were full fp32 before, which leaves most of an A100 unused;
   weights and optimizer state stay fp32. Needs an Ampere or newer GPU.
