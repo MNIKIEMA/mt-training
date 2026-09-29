@@ -5,6 +5,15 @@ by default, or any Hub dataset with `--split`). `inference.py` translates
 with an HF model or a CTranslate2 model directory (`CT2Translator`).
 Post-training evals in `train.py` go through CT2.
 
+## 2026-09-29 (Bouquet)
+
+- **`eval.py --dataset facebook/bouquet`** loads a Bouquet benchmark file
+  (`benchmark_data/<level>/<split>/<src>-<tgt>.parquet`, default split
+  `test`, `--bouquet_level sentence_level|paragraph_level`), keeping
+  `domain`. fra-mos test: 854 sentences, 198 paragraphs. Paragraph
+  references reach 271 Mooré tokens: raise `--max_new_tokens` (384 used) or
+  outputs get cut at 128.
+
 ## 2026-09-28 (FLORES+ for any model)
 
 - **`uvx modal run scripts/modal_train.py::flores --model <hub id>`** runs

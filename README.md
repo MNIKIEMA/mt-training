@@ -80,6 +80,10 @@ uv run python -m mt_training.eval --output predictions.csv --output_format csv
 Key options: `--model`, `--batch_size`, `--limit`, `--src_lang`, `--tgt_lang`.  
 Config files are also supported: `uv run python -m mt_training.eval --config eval.yaml`.
 
+Bouquet (`facebook/bouquet`) is supported as a second external benchmark:
+`--dataset facebook/bouquet` (test split, sentence level by default;
+`--bouquet_level paragraph_level --max_new_tokens 384` for paragraphs).
+
 ### Comparing two models
 
 ```bash

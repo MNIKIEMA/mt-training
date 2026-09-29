@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `eval.py --dataset facebook/bouquet` evaluates on Bouquet (test split by
+  default, `--bouquet_level sentence_level|paragraph_level`).
 - `mt-training compare` (`mt_training.compare`): chrF++ and BLEU of two
   models' predictions per source-length bucket, with a paired bootstrap 95%
   CI of the chrF++ gain (resamples sacrebleu's per-sentence statistics,

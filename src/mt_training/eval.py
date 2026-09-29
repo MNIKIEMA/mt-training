@@ -5,6 +5,9 @@ Usage:
     # FLORES+ devtest
     python -m mt_training.eval
 
+    # Bouquet test (sentence level; --bouquet_level paragraph_level for paragraphs)
+    python -m mt_training.eval --dataset facebook/bouquet
+
     # HuggingFace hub dataset
     python -m mt_training.eval --dataset madoss/moore-web-parallel --split test --src_field french --ref_field moore
 
@@ -39,6 +42,7 @@ load_dotenv()
 
 FLORES_PLUS = "openlanguagedata/flores_plus"
 FLORES_DEFAULT_SPLIT = "devtest"
+BOUQUET = "facebook/bouquet"
 DEFAULT_SRC_FIELD = "src"
 DEFAULT_REF_FIELD = "reference_translation"
 
@@ -62,7 +66,12 @@ class EvalConfig:
     tgt_lang: str = field(default=TGT_LANG, metadata={"help": "Target language code (NLLB format)"})
     split: str | None = field(
         default=None,
-        metadata={"help": "Dataset split to evaluate on (defaults to devtest for FLORES+)"},
+        metadata={
+            "help": "Dataset split to evaluate on (defaults: devtest for FLORES+, test for Bouquet)"
+        },
+    )
+    bouquet_level: Literal["sentence_level", "paragraph_level"] = field(
+        default="sentence_level", metadata={"help": "Bouquet granularity"}
     )
     batch_size: int = field(default=16, metadata={"help": "Translation batch size"})
     beam_size: int = field(default=4, metadata={"help": "Beam search width (1 = greedy)"})
@@ -103,8 +112,34 @@ def _load_flores_plus(src_lang: str, tgt_lang: str, split: str) -> Dataset:
     )
 
 
+def _load_bouquet(src_lang: str, tgt_lang: str, split: str, level: str) -> Dataset:
+    """Load one Bouquet benchmark file (e.g. fra_Latn-mos_Latn) into src/ref columns."""
+    from huggingface_hub import hf_hub_download
+
+    path = hf_hub_download(
+        BOUQUET,
+        f"benchmark_data/{level}/{split}/{src_lang}-{tgt_lang}.parquet",
+        repo_type="dataset",
+        token=os.environ.get("HF_TOKEN"),
+    )
+    df = pd.read_parquet(path)
+    return Dataset.from_dict(
+        {
+            "src": df["src_text"].tolist(),
+            "reference_translation": df["tgt_text"].tolist(),
+            "domain": df["domain"].tolist(),
+        }
+    )
+
+
 def load_eval_dataset(cfg: EvalConfig) -> Dataset:
-    if cfg.dataset == FLORES_PLUS:
+    if cfg.dataset == BOUQUET:
+        split = cfg.split or "test"
+        print(
+            f"Loading Bouquet {cfg.bouquet_level} ({cfg.src_lang} → {cfg.tgt_lang}, split={split})"
+        )
+        ds = _load_bouquet(cfg.src_lang, cfg.tgt_lang, split, cfg.bouquet_level)
+    elif cfg.dataset == FLORES_PLUS:
         split = cfg.split or FLORES_DEFAULT_SPLIT
         print(f"Loading flores_plus ({cfg.src_lang} → {cfg.tgt_lang}, split={split})")
         ds = _load_flores_plus(cfg.src_lang, cfg.tgt_lang, split)
