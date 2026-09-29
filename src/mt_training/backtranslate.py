@@ -50,6 +50,12 @@ TranslateFn = Callable[[list[str]], list[str]]
 @dataclass
 class BacktranslateConfig:
     model: str = field(default="", metadata={"help": "Mooré -> French model: Hub id or CT2 dir"})
+    dtype: str | None = field(
+        default=None,
+        metadata={
+            "help": "HF model weight dtype, e.g. bfloat16 (default: as saved; ignored for CT2)"
+        },
+    )
     dataset: str = field(default="madoss/moore-web-mono", metadata={"help": "Mooré dataset"})
     dataset_config: str | None = field(default="default", metadata={"help": "Dataset config"})
     dataset_revision: str | None = field(
@@ -164,7 +170,7 @@ def load_rows(cfg: BacktranslateConfig) -> list[dict]:
 def model_translate_fn(cfg: BacktranslateConfig) -> TranslateFn:
     from mt_training.inference import load_model, translate_batch
 
-    model, tokenizer = load_model(cfg.model)
+    model, tokenizer = load_model(cfg.model, dtype=cfg.dtype)
 
     def translate(texts: list[str]) -> list[str]:
         return translate_batch(

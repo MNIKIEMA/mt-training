@@ -51,6 +51,12 @@ DEFAULT_REF_FIELD = "reference_translation"
 @dataclass
 class EvalConfig:
     model: str = field(default=DEFAULT_MODEL, metadata={"help": "Model name or local path"})
+    dtype: str | None = field(
+        default=None,
+        metadata={
+            "help": "HF model weight dtype, e.g. bfloat16 (default: as saved; ignored for CT2)"
+        },
+    )
     dataset: str = field(
         default=FLORES_PLUS,
         metadata={"help": "FLORES+ dataset ID or HuggingFace hub dataset ID"},
@@ -204,7 +210,7 @@ def run_evaluation(
     references: list[str] = dataset[cfg.ref_field]
 
     print(f"\nLoading model: {cfg.model}")
-    model, tokenizer = load_model(cfg.model)
+    model, tokenizer = load_model(cfg.model, dtype=cfg.dtype)
     device = (
         next(iter(model.parameters())).device
         if hasattr(model, "parameters")

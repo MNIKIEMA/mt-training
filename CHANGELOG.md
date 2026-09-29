@@ -17,6 +17,11 @@ All notable changes to this project will be documented in this file.
 - `eval.py --normalize_references true` scores after mapping ’ « » etc. to
   ' " on references and hypotheses, so models that write ' and " (all NLLB
   models can only) are not penalized against typographic references.
+- `--dtype` (e.g. `bfloat16`) for HF models in `mt-training translate`,
+  `eval.py` and `backtranslate`. Fine-tuned checkpoints are saved in fp32
+  (mixed-precision training keeps fp32 weights), which ran out of memory
+  with beam search on a 4 GB RTX 3050; in bf16 it fits. CTranslate2 models
+  are unaffected.
 
 ### Changed
 

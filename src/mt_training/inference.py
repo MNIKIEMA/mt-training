@@ -121,8 +121,14 @@ def translate_batch(
 
 
 def load_model(
-    model_name: str, tokenizer_name: str = BASE_TOKENIZER
+    model_name: str, tokenizer_name: str = BASE_TOKENIZER, dtype: str | None = None
 ) -> tuple[Seq2SeqModel | CT2Translator, PreTrainedTokenizerBase]:
+    """Load a Hub/local HF model or a CTranslate2 directory.
+
+    `dtype` (e.g. "bfloat16") applies to HF models only; None keeps the dtype the
+    checkpoint was saved in (float32 for our fine-tunes: mixed-precision training
+    saves fp32 weights). CT2 models keep their conversion quantization.
+    """
     tokenizer = cast(
         PreTrainedTokenizerBase,
         AutoTokenizer.from_pretrained(tokenizer_name, src_lang=SRC_LANG, tgt_lang=TGT_LANG),
@@ -132,7 +138,9 @@ def load_model(
 
     model = cast(
         Seq2SeqModel,
-        AutoModelForSeq2SeqLM.from_pretrained(model_name, device_map="auto"),
+        AutoModelForSeq2SeqLM.from_pretrained(
+            model_name, device_map="auto", dtype=getattr(torch, dtype) if dtype else "auto"
+        ),
     )
     model.eval()
     return model, tokenizer
@@ -151,10 +159,13 @@ def main():
         default=0,
         help="Block repeated n-grams of this size (0 = disabled)",
     )
+    parser.add_argument(
+        "--dtype", default=None, help="HF model weight dtype, e.g. bfloat16 (default: as saved)"
+    )
     args = parser.parse_args()
 
     print(f"Loading model: {args.model}")
-    model, tokenizer = load_model(args.model)
+    model, tokenizer = load_model(args.model, dtype=args.dtype)
 
     if args.text:
         print(

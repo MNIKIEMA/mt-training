@@ -7,6 +7,23 @@ French (HY-MT), and round-trip translation of French through English
 Run scores are in [experiments.md](experiments.md).
 
 
+## 2026-09-29 (backtranslation with MosFr-v2)
+
+- **Output**: `data/bt/moore-web-mono-v1.1.0-bt-MosFr-v2.jsonl` (not in git),
+  all 8,817 sentences of moore-web-mono v1.1.0 translated by
+  `madoss/nllb-600m-MosFr-mwp-v2` (CT2 int8, beam 4, RTX 3050, 463 s).
+  Kept 8,764 (99.4%); dropped 49 `length_ratio`, 2 `loop`, 2 `moore_letters`.
+  `bt_model` records the Hub id (the run used a local CT2 conversion of it).
+- **Supersedes `moore-web-mono-bt.jsonl`** (MosFr-v1), which lost apostrophes:
+  same ids, sentences with an apostrophe 2,775 → 6,228, glued elisions
+  ("Cest", "quil", "dun"…) 885 → 3, sentences with quotes 293 → 1,025.
+- **HF inference in fp32 ran out of memory** on the 3050 (fine-tuned
+  checkpoints are fp32; beam 4 × batch 32). Added `--dtype bfloat16`: fits,
+  about 6 sentences/s versus 19 with CT2 int8, so CT2 stays the local choice.
+- Next: LASER and COMET-QE scores as columns (moore-web `annotate`), no
+  filtering yet; then French → Mooré on moore-web-parallel v1.1.0 + these
+  pairs, compared with FrMos-v2.
+
 ## 2026-09-29 (backtranslation tool)
 
 - **`mt_training/backtranslate.py`** (`mt-training backtranslate`,
