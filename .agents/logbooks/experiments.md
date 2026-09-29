@@ -21,6 +21,52 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-29 (backtranslation: FrMos-mwp-bt-v1 vs a v1.1.0 baseline)
+
+- **Runs** (Modal A100, `train.sh` hyperparameters, 8 epochs):
+  `nllb-600m-FrMos-mwp-v3` = `moore-web-parallel` v1.1.0 (2,440 steps);
+  `nllb-600m-FrMos-mwp-bt-v1` = the same + 8,764 Mooré Wikipedia sentences
+  backtranslated by MosFr-v2 (`madoss/moore-web-parallel-bt` @ `26afc31`,
+  2,990 steps). The two differ only by the synthetic pairs.
+- **Scoring** as for v1 vs v2: CT2 int8, RTX 3050, normalized references,
+  paired bootstrap 95% CI (`mt-training compare`). chrF++ (BLEU),
+  output/reference length ratio:
+
+  | | FLORES+ (1,012) | Bouquet sent. (854) | Bouquet para. (198) | test (2,573) |
+  |---|---|---|---|---|
+  | FrMos-v2 (v1.0.0) | 22.68 (3.46) | 28.74 (10.68) | 34.01 (12.44) | 32.69 (10.85) |
+  | FrMos-v3 (v1.1.0) | 22.66 (3.29) | 29.03 (10.87) | 34.00 (12.83) | 32.61 (10.93) |
+  | FrMos-bt-v1 | 24.95 (3.01) | 30.87 (11.68) | 35.44 (13.07) | 33.30 (10.25) |
+  | v3 − v2 | −0.01 [−0.25, +0.23] | +0.29 [−0.13, +0.71] | −0.01 [−0.40, +0.40] | −0.08 [−0.35, +0.19] |
+  | bt − v3 | **+2.28** [+1.95, +2.60] | **+1.84** [+1.30, +2.40] | **+1.44** [+0.93, +1.94] | **+0.69** [+0.42, +0.99] |
+  | length v3 → bt | 0.98 → 1.22 | 0.94 → 1.06 | 0.95 → 1.03 | 1.08 → 1.17 |
+
+- **v1.1.0 (orthography fixes) changes nothing measurable** for French → Mooré.
+- **Backtranslation helps, but part of the chrF++ gain is length.**
+  - On Bouquet it looks real: outputs move towards the reference length and
+    BLEU rises with chrF++.
+  - On FLORES+ and the test split the outputs get longer than the
+    references and BLEU falls. chrF++ (β = 2) rewards recall, so longer
+    output raises it on its own. The FLORES+ gain holds in every length
+    quartile (+2.1 to +2.4).
+  - FLORES+ outputs over 1.5× the reference length go from 6.0% to 18.9%;
+    the share of repeated words goes from 0.135 to 0.214.
+- **What the extra length is**:
+  - Some is real coverage. For example, on the Amazon item v3 drops the
+    second sentence ("huit fois le volume d'eau") and bt-v1 translates it.
+  - Some is Wikipedia style. "sẽn boond tɩ" ("so-called", used to introduce
+    terms) occurs 3.56 times per 1,000 words in the synthetic Mooré, against
+    1.84 in the authentic train split. In outputs it goes from 2.83 to 3.74
+    per 1,000 words on FLORES+ (reference: 0.12), and from 0.33 to 1.01 on
+    Bouquet sentences.
+  - Some is degenerate loops. For example, "Il a produit plus de 1000
+    timbres…" becomes "…b sẽn da maand b sẽn yaa b sẽn maand … b sẽn tõe n
+    maan…".
+- **Next**: tag the synthetic sources (tagged backtranslation, e.g. a `<bt>`
+  token, so the model can tell the Wikipedia style apart), a COMET-QE
+  filtered variant, and decoding with a repetition penalty. Judge them on
+  BLEU and length ratio as well as chrF++, not chrF++ alone.
+
 ## 2026-09-29 (v2: NLLB <unk> fix, both directions)
 
 - **`nllb-600m-FrMos-mwp-v2` and `nllb-600m-MosFr-mwp-v2`**: same scripts,
