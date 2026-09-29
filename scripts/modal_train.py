@@ -17,12 +17,15 @@ Run from the repository root:
     # smoke test (small, ~minutes)
     uvx modal run scripts/modal_train.py --script debug.sh
 
-    # full run, detached: keeps going after you close the terminal
-    uvx modal run --detach scripts/modal_train.py --script train.sh
+    # full run: --detach plus --no-wait. The command returns at once and nothing
+    # in this terminal can cancel the run. (Waiting with --detach alone is not
+    # enough: Ctrl+C in the waiting terminal cancels the call.)
+    uvx modal run --detach scripts/modal_train.py --script train.sh --no-wait
 
-    # resume after a timeout or failure
-    uvx modal run --detach scripts/modal_train.py --script train.sh \
-        --extra-args "--resume_from_checkpoint /outputs/nllb-600m-FrMos/checkpoint-1234"
+    # resume after a timeout or failure, continuing the same W&B run
+    uvx modal run --detach scripts/modal_train.py --script train.sh --no-wait \
+        --extra-args "--resume_from_checkpoint /outputs/nllb-600m-FrMos/checkpoint-1234" \
+        --wandb-run-id <id from the W&B run URL>
 
     # fetch results
     uvx modal volume ls mt-training-outputs
@@ -77,7 +80,7 @@ SECRETS = [
     # A retry would restart training from scratch; resume from a checkpoint instead.
     retries=0,
 )
-def train(script: str, extra_args: str = "") -> None:
+def train(script: str, extra_args: str = "", wandb_run_id: str = "") -> None:
     cmd = [
         "sh",
         f"scripts/{script}",
@@ -86,16 +89,29 @@ def train(script: str, extra_args: str = "") -> None:
         f"{OUTPUTS}/",
         *shlex.split(extra_args),
     ]
+    env = dict(os.environ)
+    if wandb_run_id:
+        # Continue an existing W&B run (e.g. after resuming from a checkpoint).
+        env |= {"WANDB_RUN_ID": wandb_run_id, "WANDB_RESUME": "must"}
     print("Running:", shlex.join(cmd), flush=True)
     try:
-        subprocess.run(cmd, cwd=REMOTE_ROOT, check=True)
+        subprocess.run(cmd, cwd=REMOTE_ROOT, env=env, check=True)
     finally:
         outputs.commit()
         cache.commit()
 
 
 @app.local_entrypoint()
-def main(script: str = "debug.sh", extra_args: str = "") -> None:
+def main(
+    script: str = "debug.sh", extra_args: str = "", wandb_run_id: str = "", wait: bool = True
+) -> None:
     if not (ROOT / "scripts" / script).is_file():
         raise SystemExit(f"No such script: scripts/{script}")
-    train.remote(script, extra_args)
+    if wait:
+        # Streams logs; Ctrl+C here cancels the run, even with --detach.
+        train.remote(script, extra_args, wandb_run_id)
+        return
+    # With --detach, a spawned call is not tied to this terminal at all.
+    call = train.spawn(script, extra_args, wandb_run_id)
+    print(f"Started {call.object_id}.")
+    print("Logs: uvx modal app logs mt-training   Stop: uvx modal app stop mt-training")

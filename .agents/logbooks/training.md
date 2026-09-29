@@ -6,6 +6,38 @@ validation subset during training (chrF++ picks the best checkpoint), then
 runs the in-domain `test` split, CTranslate2 conversion and FLORES+ (see
 [evaluation-inference.md](evaluation-inference.md)).
 
+## 2026-09-28 (first full run on Modal cancelled)
+
+- **`--detach` alone did not protect the run.** The first `train.sh` run
+  (`nllb-600m-FrMos-mwp-v1`, bf16, A100-80GB) was cancelled at step ~626 of
+  2,440 ("Received a cancellation signal while processing input"). The
+  local entrypoint waited on `train.remote()`; `--detach` only keeps the call
+  alive if the local process dies or disconnects, while an interrupt of the
+  waiting call (Ctrl+C) cancels it. `modal_train.py` now has `--no-wait`,
+  which starts the call with `train.spawn()` and returns: use
+  `--detach --no-wait` for full runs.
+- **Checkpoints survived**: `checkpoint-305` and `checkpoint-610` (end of
+  epochs 1 and 2, with optimizer, scheduler and RNG state) were on the
+  volume even though the `finally: outputs.commit()` may not have run, so
+  Volume background commits are enough for epoch checkpoints.
+- **Speed in bf16 on A100-80GB: ~2 it/s**, 305 steps per epoch, so 8 epochs
+  ≈ 20–25 min of training plus evals, far below the ~5 h of the earlier fp32
+  runs (older data, so not a clean comparison).
+- **After a resume, the model card's training-results table is scrambled**
+  from the first post-resume epoch: columns shifted (Bleu = val loss,
+  Chrf++ = BLEU, Validation Loss = chrF++), which reads as val loss jumping
+  2.66 → 31.3. Checked against `checkpoint-2440/trainer_state.json`: eval
+  loss falls smoothly 2.91 → 2.43. Cause: rows logged before the resume are
+  reloaded from `trainer_state.json`, whose keys are alphabetical
+  (`eval_bleu`, `eval_chrf++`, `eval_loss`); rows logged after it keep the
+  live order (`eval_loss` first). The card table takes its headers from the
+  first row and fills each row in its own key order. Metrics, W&B and
+  checkpoint selection are right; read resumed runs from W&B or
+  `trainer_state.json`, not the card table.
+- **Resuming**: `--extra-args "--resume_from_checkpoint
+  /outputs/<repo>/checkpoint-N"`; `--wandb-run-id <id>` continues the same W&B
+  run (`WANDB_RESUME=must`) instead of starting a new one at step N.
+
 ## 2026-09-28 (W&B offline for smoke tests)
 
 - **`debug.sh` sets `WANDB_MODE=offline` unless already set.** The two

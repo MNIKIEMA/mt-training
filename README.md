@@ -41,7 +41,7 @@ uvx modal setup
 
 # smoke test, then a detached full run
 uvx modal run scripts/modal_train.py --script debug.sh
-uvx modal run --detach scripts/modal_train.py --script train.sh
+uvx modal run --detach scripts/modal_train.py --script train.sh --no-wait
 
 # get the CTranslate2 model
 uvx modal volume get mt-training-outputs nllb-600m-FrMos-ct2 ./nllb-600m-FrMos-ct2
