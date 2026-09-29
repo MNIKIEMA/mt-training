@@ -21,6 +21,39 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-29 (Bouquet: untuned vs June vs v1.0.0 model)
+
+- **Bouquet `fra_Latn-mos_Latn` test confirms the ranking, more clearly than
+  FLORES+.** CT2 int8 on the local RTX 3050, `eval.py --dataset
+  facebook/bouquet` (beam 4, no-repeat 3; `--max_new_tokens` 128 for
+  sentences, 384 for paragraphs, same for every model: 55 of 198 paragraph
+  references exceed 128 Mooré tokens). CIs: `mt-training compare`, 1,000
+  resamples, seed 0.
+
+  | Bouquet test | untuned NLLB | `nllb-600m-FrMos` (June) | `nllb-600m-FrMos-mwp-v1` |
+  | --- | --- | --- | --- |
+  | sentences (854), chrF++ / BLEU | 26.09 / 9.18 | 27.12 / 8.33 | 28.71 / 10.56 |
+  | paragraphs (198), chrF++ / BLEU | 25.34 / 7.49 | 23.63 / 5.92 | 33.77 / 12.46 |
+  | paragraphs, output/reference length | 0.71 | 0.59 | 0.94 |
+
+  chrF++ gains [95% CI]: sentences new − untuned +2.62 [+1.91, +3.30], new −
+  June +1.60 [+1.14, +2.08] (positive in every length quartile), June −
+  untuned +1.02 [+0.32, +1.74]; paragraphs new − untuned +8.42 [+7.17,
+  +9.73], new − June +10.14 [+8.60, +11.69], June − untuned −1.71 [−3.10,
+  −0.39].
+- **The paragraph gap is completeness.** The untuned and June models stop
+  early on paragraphs (0.71 and 0.59 of the reference length); the new model
+  translates the whole paragraph (0.94). Likely from v1.0.0's long
+  multi-sentence pairs (`expert`, `news`, reviewed units), not verified.
+  Same pattern as the long FLORES+ quartile.
+- **June model re-run on FLORES+ via `modal_train.py::flores`**: 2.72 /
+  21.01 (post-training run: 2.76 / 20.96), so the FLORES+ comparison stands.
+  Its CT2 model is on the volume at `eval/madoss--nllb-600m-FrMos-ct2-int8`.
+- **Bouquet is the better external check for this data**: conversational
+  and how-to text, 8 domains, sentence and paragraph levels, CC BY 4.0, and
+  checked free of overlap with the `expert` rows. Use the test split only for
+  reporting; dev is available for choices.
+
 ## 2026-09-29 (sentence length: FLORES+ vs moore-web-parallel v1.0.0)
 
 - **Training rows are much shorter than FLORES+, but long ones exist; most
