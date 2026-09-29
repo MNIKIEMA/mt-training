@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `mt-training overlap` (`mt_training.overlap`): benchmark rows whose source
+  also appears in the training data (normalized exact match), with the
+  split and source it was seen in and its word count.
 - `eval.py --dataset facebook/bouquet` evaluates on Bouquet (test split by
   default, `--bouquet_level sentence_level|paragraph_level`).
 - `mt-training compare` (`mt_training.compare`): chrF++ and BLEU of two

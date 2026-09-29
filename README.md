@@ -96,3 +96,15 @@ uv run mt-training compare --baseline base.csv --candidate new.csv
 Prints chrF++ and BLEU per source-length bucket (4 equal-size buckets by
 default), the paired bootstrap 95% CI of the chrF++ gain, and each model's
 output/reference length ratio.
+
+### Checking a benchmark against the training data
+
+```bash
+uv run mt-training overlap --benchmark burkimbia/mt-benchmark-public --output overlap.csv
+```
+
+Lists benchmark rows whose French source also appears in the training dataset
+(default `madoss/moore-web-parallel` `mos-fra` `v1.0.0`), after normalizing
+case, punctuation and spacing, with where it was seen and its word count.
+Exact matches only, so it is a lower bound; short matches are usually common
+words, 6+ word matches point to shared documents.

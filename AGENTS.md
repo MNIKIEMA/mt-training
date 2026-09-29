@@ -9,6 +9,7 @@ working training run over a clever abstraction.
 
 - `src/mt_training/train.py`: training entrypoint. Uses Hugging Face `Seq2SeqTrainer`.
 - `src/mt_training/eval.py`: dataset loading, translation, BLEU, and chrF++ evaluation.
+- `src/mt_training/overlap.py`: finds benchmark sources that also appear in the training data (normalized exact match).
 - `src/mt_training/compare.py`: compares two `eval.py --output` files per source-length bucket, with a paired bootstrap CI.
 - `src/mt_training/inference.py`: HF and CTranslate2 inference helpers.
 - `src/mt_training/convert_ct2.py`: converts a HF seq2seq checkpoint to CTranslate2.
