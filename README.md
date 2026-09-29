@@ -36,6 +36,20 @@ Mooré → French (for backtranslation), same hyperparameters:
 It passes `--source_field moore --target_field french --src_lang mos_Latn
 --tgt_lang fra_Latn`; any direction can be trained with these four options.
 
+### Backtranslation
+
+```bash
+# Mooré sentences (madoss/moore-web-mono v1.1.0) -> synthetic French pairs
+uv run mt-training backtranslate --model <Mooré -> French model or CT2 dir>
+uvx modal run --detach scripts/modal_train.py --script backtranslate.sh --no-wait \
+    --extra-args "--model madoss/nllb-600m-MosFr-mwp-v1"
+```
+
+Writes pairs in the `moore-web-parallel` schema (`original_lang: mos`,
+`reviewed: false`, `source: bt-<source>`, the Mooré sentence's `id`) with a
+`drop_reason` (null, `empty`, `copy`, `moore_letters`, `length_ratio`, `loop`);
+reruns skip ids already written.
+
 Extra arguments are passed through to training, and override the script's
 own values: `./scripts/train.sh --output_dir_root ./runs/`.
 

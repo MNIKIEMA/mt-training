@@ -18,6 +18,7 @@ working training run over a clever abstraction.
 - `scripts/train_mixed_nllb_200k.sh`: mixed/top200k synthetic data training run.
 - `scripts/train_round_trip.sh`: training on authentic + round-tripped French (Hub names still say "backtranslated").
 - `scripts/debug.sh`: small dry-run training script.
+- `src/mt_training/backtranslate.py`: Mooré monolingual sentences -> synthetic French pairs (moore-web-parallel schema, marked synthetic, `drop_reason` per pair); `scripts/backtranslate.sh` runs it (also on Modal).
 - `scripts/train_mos_fra.sh`: Mooré → French with `train.sh`'s hyperparameters (backtranslation model).
 - `scripts/modal_train.py`: runs any of the scripts above on a Modal GPU, outputs on a Modal Volume.
 

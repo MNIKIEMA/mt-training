@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `mt-training backtranslate` (`mt_training.backtranslate`,
+  `scripts/backtranslate.sh`): translates Mooré monolingual sentences
+  (default `madoss/moore-web-mono` v1.1.0) into French with a Mooré -> French
+  model, writing synthetic pairs in the `moore-web-parallel` schema with a
+  `drop_reason` per pair; resumable by id.
+
 ### Changed
 
 - Renamed the French round-trip workflow, which is not backtranslation:

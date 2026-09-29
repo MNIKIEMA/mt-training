@@ -7,6 +7,30 @@ French (HY-MT), and round-trip translation of French through English
 Run scores are in [experiments.md](experiments.md).
 
 
+## 2026-09-29 (backtranslation tool)
+
+- **`mt_training/backtranslate.py`** (`mt-training backtranslate`,
+  `scripts/backtranslate.sh`, runs on Modal through the launcher, which adds
+  `--output_dir_root /outputs/`). Pairs keep the Mooré sentence's content id,
+  `source: bt-<source>`, `original_lang: mos`, `reviewed: false`,
+  `bt_model`, and a `drop_reason`; nothing is dropped at write time, so the
+  checks can change without re-translating. Output is appended per batch and
+  existing ids are skipped (resume). French is checked without a language-ID
+  model: Mooré-only letters (ɛ ɩ ʋ ã ẽ ĩ õ ũ) in the output mean untranslated
+  Mooré.
+- **Tried with the untuned NLLB (CT2 int8, RTX 3050) on the first 500
+  moore-web-mono sentences**: 1 s per 30, 494 kept, 6 `length_ratio` drops,
+  all real omissions (French far shorter than the Mooré). Kept French/Mooré
+  length ratio: p5 0.65, median 0.96, p95 1.48, so the [0.5, 3.0] bounds only
+  catch outliers. Fluent French but factual slips (two birth dates for the same
+  person, "législatives" for a presidential election).
+- **moore-web-mono contains NLLB output**: 25 sentences on 10 incubator pages
+  carry leaked NLLB language tags ("… mos_Latnmos_Latnmos_Latn be be be").
+  Those articles were machine-translated with NLLB; training NLLB on its own
+  Mooré is H2 again. Handled in moore-web: tagged pages dropped whole;
+  `moore-web-mono` v1.1.0 (8,817 sentences) is the backtranslation input and
+  the tool's default revision.
+
 ## 2026-09-29 (rename)
 
 - **`backtranslate.py` → `round_trip.py`, `train_backtranslated.sh` →
