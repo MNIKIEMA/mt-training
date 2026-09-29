@@ -20,9 +20,29 @@ Run scores are in [experiments.md](experiments.md).
 - **HF inference in fp32 ran out of memory** on the 3050 (fine-tuned
   checkpoints are fp32; beam 4 × batch 32). Added `--dtype bfloat16`: fits,
   about 6 sentences/s versus 19 with CT2 int8, so CT2 stays the local choice.
-- Next: LASER and COMET-QE scores as columns (moore-web `annotate`), no
-  filtering yet; then French → Mooré on moore-web-parallel v1.1.0 + these
-  pairs, compared with FrMos-v2.
+- **Scores** (moore-web `annotate`, default batch sizes; not used to filter):
+  `data/bt/moore-web-mono-v1.1.0-bt-MosFr-v2-scored.jsonl` adds
+  `laser_score` (LASER2 fra / LASER3 mos) and `comet_qe`
+  (`McGill-NLP/ssa-comet-qe`). Kept pairs: LASER p5/median/p95
+  0.69 / 0.83 / 0.90; COMET-QE 0.51 / 0.63 / 0.72.
+  - The two barely agree: Spearman 0.24; of the bottom 10% by each, 153 of
+    876 pairs are shared (88 expected by chance).
+  - LASER's lowest (down to −0.14) are correct translations: Galatians 3:8
+    and 3:5, a purification ceremony. Their COMET-QE is 0.55–0.67. LASER3's
+    Mooré encoder is the weak side, so LASER alone is a poor filter here.
+  - COMET-QE's lowest (≈0.35–0.39) are real problems: mistranslations
+    ("pêche laitière … poussins"), garbled Mooré sources
+    ("Rɩk-y n dɩk-y-yã-yã-a…"), untranslated names ("Clash cymbals").
+  - The rule-based drops have the same median COMET-QE (0.62) as kept
+    pairs: the rules and COMET-QE catch different failures.
+- **Running the scorers on the RTX 3050 laptop (7.5 GB RAM)**: batched LASER3
+  fails in fairseq's transformer fast path ("Mask Type should be defined");
+  loading ssa-comet-qe (XLM-R large) was killed by the kernel OOM killer
+  (~4.1 GB RSS) while VS Code was open. The GPU was not the limit. It ran
+  with VS Code closed, batch size 4.
+- Next: French → Mooré on moore-web-parallel v1.1.0 + all kept pairs,
+  compared with FrMos-v2; then an ablation filtering on COMET-QE rather
+  than LASER.
 
 ## 2026-09-29 (backtranslation tool)
 
