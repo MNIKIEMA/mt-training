@@ -21,6 +21,47 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-29 (burkimbia/mt-benchmark-public submission)
+
+- **Translated the blind benchmark with `nllb-600m-FrMos-mwp-v1`** (CT2
+  int8, local RTX 3050, beam 4, no-repeat 3, `max_new_tokens` 384 since
+  sources reach 845 chars): 1,475 French sources → Mooré, ids 0–1474, no
+  empty output. Submission CSV (`id,translation`):
+  `submissions/nllb-600m-FrMos-mwp-v1.csv` (untracked). Domains:
+  arts_technology 300, daily_life 300, religious 297, administrative 291,
+  health 233, unknown 54; a `weight` column (1–3) is given, meaning not
+  documented. No references, no submission instructions in the card.
+- **The benchmark shares documents with our training data.** `mt-training
+  overlap` (normalized exact match on the French side, lower bound): 214 of
+  1,475 rows. By length: 47 of 1–2 words and 20 of 3–5 (dictionary
+  headwords, fragments: not a real leak); **147 of 6+ words**: 92
+  `conseils` (administrative, 67 of them 11+ words) and 54 `kade`/`sida`
+  (health). About a third of `administrative` and a fifth of `health` match
+  exactly; more of those domains likely come from the same documents.
+  `religious`, `arts_technology`, `daily_life` are essentially clean (3 short
+  matches). Scores on administrative and health will overstate the model;
+  report per domain, or train a decontaminated model (drop the matching
+  sources, or whole `conseils`/`kade`/`sida` documents) for a fair entry.
+  Match list: `submissions/nllb-600m-FrMos-mwp-v1.overlap.csv`.
+- **Leaderboard (2026-09-29), same translation settings for both:**
+
+  | Model | chrF | BLEU |
+  | --- | --- | --- |
+  | untuned `facebook/nllb-200-distilled-600M` | 35.10 | 5.22 |
+  | `nllb-600m-FrMos-mwp-v1` | 42.68 | 7.92 |
+
+  Gain +7.58 chrF, +2.70 BLEU: much more than on the clean benchmarks
+  (chrF++: FLORES+ +1.78, Bouquet sentences +2.62, paragraphs +8.42). Three
+  effects mixed: the 147 shared sentences (same documents), domain match
+  (administrative and health text is most of our training data), and
+  complete translations of long inputs (the untuned outputs are 4% shorter
+  here). The transferable gain is likely nearer the FLORES+/Bouquet numbers;
+  per-domain leaderboard scores or a decontaminated retrain would measure it.
+  Leaderboard chrF is plain chrF (not chrF++), possibly weighted by the
+  undocumented `weight` column. Submission files:
+  `submissions/nllb-200-distilled-600M-untuned.csv`,
+  `submissions/nllb-600m-FrMos-mwp-v1.csv` (untracked).
+
 ## 2026-09-29 (Bouquet: untuned vs June vs v1.0.0 model)
 
 - **Bouquet `fra_Latn-mos_Latn` test confirms the ranking, more clearly than
