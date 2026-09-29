@@ -29,6 +29,7 @@ from mt_training.eval import (
     EvalConfig,
     run_evaluation,
 )
+from mt_training.text import normalize_for_nllb
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -147,11 +148,12 @@ def load_and_prepare_dataset(data_args: DataTrainingArguments):
 
 def build_tokenize_fn(tokenizer: PreTrainedTokenizerBase, data_args: DataTrainingArguments):
     # The language tokens come from the tokenizer's src_lang/tgt_lang, set in main().
+    # Both sides are normalized for the NLLB vocabulary (’ « » -> ' "), see text.py.
     # The NLLB tokenizer silently ignores src_lang/tgt_lang passed to __call__.
     def tokenize_fn(examples):
         tokenized = tokenizer(
-            examples["source"],
-            text_target=examples["target"],
+            [normalize_for_nllb(t) for t in examples["source"]],
+            text_target=[normalize_for_nllb(t) for t in examples["target"]],
             max_length=data_args.max_length,
             truncation=True,
         )

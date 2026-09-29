@@ -8,6 +8,7 @@ working training run over a clever abstraction.
 ## The Shape Of The Repo
 
 - `src/mt_training/train.py`: training entrypoint. Uses Hugging Face `Seq2SeqTrainer`.
+- `src/mt_training/text.py`: `normalize_for_nllb`, applied to every text before tokenization (training and inference); NLLB has no ’ or « ».
 - `src/mt_training/eval.py`: dataset loading, translation, BLEU, and chrF++ evaluation.
 - `src/mt_training/overlap.py`: finds benchmark sources that also appear in the training data (normalized exact match).
 - `src/mt_training/compare.py`: compares two `eval.py --output` files per source-length bucket, with a paired bootstrap CI.

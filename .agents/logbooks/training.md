@@ -47,6 +47,31 @@ runs the in-domain `test` split, CTranslate2 conversion and FLORES+ (see
   container doesn't inherit local env vars, so smoke tests there are
   offline too.
 
+## 2026-09-29 (NLLB <unk>: apostrophes and guillemets)
+
+- **Found in the backtranslated French**: 1,145 of 8,817 sentences had
+  glued elisions ("Cest", "quil", "Lartiste"). NLLB's tokenizer has no ’ and
+  no « »: they become <unk>, and decoding with `skip_special_tokens` drops
+  them ("C’est l’état" -> "Cest létat"). v1.0.0 training text has ’ in 5,393
+  French / 280 Mooré rows and « » in ~1,700 French / ~1,050 Mooré rows, so
+  both mwp-v1 models learned to emit <unk> there (the untuned NLLB still
+  writes "C'est"). Every guillemet was lost in their outputs.
+- **Fix: `normalize_for_nllb` before every tokenization** (train
+  `tokenize_fn`, `inference.translate_batch`, hence eval, backtranslate,
+  submissions): ’ ‘ ʼ -> ', « mot » / “ ” -> "mot" (spaces inside guillemets
+  removed), — – -> -, U+0342 -> U+0303 + NFC, ɭ -> Ɩ. Datasets keep their
+  typography; references are not normalized, so scores stay comparable with
+  earlier runs (every model, the untuned one included, is equally unable to
+  produce « »).
+- **ɭ is a data error**: it appears only in all-caps `conseils` headings, as
+  capital ɩ ("BÕN-VɭɭLɭ" = bõn-vɩɩlɩ, "Tɭ" = tɩ). NLLB knows Ɩ (U+0196). To fix
+  in moore-web's conseils data too.
+- **Check**: `python -m mt_training.text` on v1.0.0 -> Mooré: no <unk> left;
+  French: 6 rows (➢ ×4, Ʊ, ₽).
+- **Both models retrained** as `nllb-600m-FrMos-mwp-v2` and
+  `nllb-600m-MosFr-mwp-v2` (same scripts and hyperparameters; v1 kept as the
+  before/after reference); backtranslation to be redone with MosFr-v2.
+
 ## 2026-09-29 (Mooré → French)
 
 - **Tagged `v0.2.0` first** (commit `d0ba012`): the code that trained

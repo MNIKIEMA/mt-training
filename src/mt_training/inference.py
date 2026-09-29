@@ -6,6 +6,8 @@ import ctranslate2
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, PreTrainedTokenizerBase
 
+from mt_training.text import normalize_for_nllb
+
 
 class Seq2SeqModel(Protocol):
     device: torch.device
@@ -95,6 +97,8 @@ def translate_batch(
     no_repeat_ngram_size: int = 0,
     max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> list[str]:
+    # Same normalization as training (’ « » -> ' "): NLLB has no tokens for them.
+    texts = [normalize_for_nllb(t) for t in texts]
     if isinstance(model, CT2Translator):
         return model.translate_batch(
             texts, tokenizer, src_lang, tgt_lang, beam_size, no_repeat_ngram_size, max_new_tokens

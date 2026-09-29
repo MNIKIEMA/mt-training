@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Text is normalized for the NLLB vocabulary before tokenization, in training
+  and at inference (`mt_training.text.normalize_for_nllb`): ’ ‘ ʼ -> ',
+  « mot » / “ ” -> "mot", — – -> -, a stray Greek perispomeni -> tilde, and
+  ɭ (used as capital ɩ in all-caps conseils headings) -> Ɩ. NLLB turns ’ and
+  « » into <unk> and decoding drops them, so models trained before this
+  emitted "Cest", "quil" and lost every guillemet. `python -m mt_training.text`
+  lists characters that still become <unk> in a dataset.
+
 ### Added
 
 - `mt-training backtranslate` (`mt_training.backtranslate`,
