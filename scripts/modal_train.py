@@ -115,3 +115,39 @@ def main(
     call = train.spawn(script, extra_args, wandb_run_id)
     print(f"Started {call.object_id}.")
     print("Logs: uvx modal app logs mt-training   Stop: uvx modal app stop mt-training")
+
+
+@app.function(
+    gpu=os.environ.get("MODAL_GPU", "A100-80GB"),
+    volumes={OUTPUTS: outputs, CACHE: cache},
+    secrets=SECRETS,
+    timeout=2 * 60 * 60,
+)
+def evaluate_flores(model: str, quantization: str = "int8") -> dict:
+    """FLORES+ devtest for any HF model, exactly as the post-training eval does it."""
+    from mt_training.eval import FLORES_DEFAULT_SPLIT, FLORES_PLUS, EvalConfig, run_evaluation
+    from mt_training.train import convert_to_ct2
+
+    name = model.replace("/", "--")
+    ct2_dir = convert_to_ct2(model, f"{OUTPUTS}/eval/{name}-ct2-{quantization}", quantization)
+    try:
+        metrics, _, _, _ = run_evaluation(
+            EvalConfig(
+                model=ct2_dir,
+                dataset=FLORES_PLUS,
+                src_lang="fra_Latn",
+                tgt_lang="mos_Latn",
+                split=FLORES_DEFAULT_SPLIT,
+                output=f"{OUTPUTS}/eval/{name}-flores_plus-{FLORES_DEFAULT_SPLIT}.csv",
+            )
+        )
+    finally:
+        outputs.commit()
+        cache.commit()
+    return metrics
+
+
+@app.local_entrypoint()
+def flores(model: str = "facebook/nllb-200-distilled-600M", quantization: str = "int8") -> None:
+    """uvx modal run scripts/modal_train.py::flores --model <hub id>"""
+    print(model, evaluate_flores.remote(model, quantization))

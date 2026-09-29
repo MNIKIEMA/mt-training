@@ -21,6 +21,69 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-28 (moore-web-parallel v1.0.0, bf16, Modal)
+
+- **First run on the new dataset: in-domain gain, and better than the June
+  model on FLORES+.**
+  `madoss/nllb-600m-FrMos-mwp-v1`, W&B run `ggomavbg`
+  (`moore-web-parallel-v1.0.0-bf16`). `scripts/train.sh` on
+  `madoss/moore-web-parallel` `mos-fra` v1.0.0 (39,038 train rows), bf16 +
+  TF32, Modal A100-80GB, 8 epochs = 2,440 steps. Cancelled once at step ~626
+  and resumed from `checkpoint-610` (see [training.md](training.md)). Wall
+  time of the resumed part: 58 min, including test eval, CT2 conversion,
+  FLORES+ and Hub push. Metric: **chrF++**.
+
+  In-training validation (500 shuffled rows, seed 42: ~315 MAFAND,
+  ~125 conseils, rest mixed):
+
+  | Epoch | Train loss | Val loss | BLEU | chrF++ |
+  | --- | --- | --- | --- | --- |
+  | 1 | 5.22 | 2.911 | 6.04 | 27.43 |
+  | 2 | 4.35 | 2.660 | 7.58 | 29.95 |
+  | 3 | 3.82 | 2.565 | 8.54 | 31.30 |
+  | 4 | 3.21 | 2.493 | 9.60 | 32.05 |
+  | 5 | 2.76 | 2.453 | 9.61 | 31.97 |
+  | 6 | 2.71 | 2.432 | 9.73 | 32.60 |
+  | 7 | 2.74 | 2.429 | 10.09 | 32.86 |
+  | 8 | 2.26 | 2.428 | 10.35 | 32.90 |
+
+  Final (best = epoch 8):
+
+  | Eval | Examples | Model | BLEU | chrF++ |
+  | --- | --- | --- | --- | --- |
+  | In-domain `test` (v1.0.0) | 2,573 | HF, trainer generation | 9.88 | 32.19 |
+  | FLORES+ devtest | 1,012 | CT2 int8 | 3.33 | 22.56 |
+
+- **Better than the previous model on FLORES+: +0.57 BLEU, +1.60 chrF++.**
+  Reference: `madoss/nllb-600m-FrMos`, trained 2026-06-02 by the same
+  post-training pipeline (CT2 int8, same `eval.py` CT2 path, chrF++) on
+  `fr-mos-final-data`, fp32. Its FLORES+ was 2.76 BLEU / 20.96 chrF++ (below
+  the untuned NLLB's 2.94 BLEU from 2026-04-17); this run 3.33 / 22.56. Data
+  and precision both changed, so the gain can't be split between them; bf16
+  normally doesn't move quality. No significance test yet.
+- **Untuned NLLB through the same pipeline** (`modal_train.py::flores`,
+  CT2 int8 on Modal A100-80GB, same `eval.py` settings): 3.08 BLEU / 20.97
+  chrF++. So on FLORES+ the June fine-tune added nothing (20.96 chrF++, BLEU
+  2.76 below the untuned model) and this run is the first to beat the untuned
+  model: +1.59 chrF++, +0.25 BLEU. Predictions of the untuned model:
+  `mt-training-outputs:eval/facebook--nllb-200-distilled-600M-flores_plus-devtest.csv`.
+
+  | FLORES+ devtest (1,012), CT2 int8 | BLEU | chrF++ |
+  | --- | --- | --- |
+  | untuned `facebook/nllb-200-distilled-600M` | 3.08 | 20.97 |
+  | `madoss/nllb-600m-FrMos` (2026-06-02) | 2.76 | 20.96 |
+  | `madoss/nllb-600m-FrMos-mwp-v1` (this run) | 3.33 | 22.56 |
+- **In-domain test scores are not comparable across the two runs**: the
+  June model's 27.78 chrF++ is on `fr-mos-final-data`'s test split, this
+  run's 32.19 on v1.0.0's, and the June training data may overlap v1.0.0
+  test rows.
+- **Still improving at epoch 8** (val loss and chrF++), early stopping never
+  triggered; gains were small over the last three epochs. A longer run is
+  cheap to try (~25 min of training per 8 epochs).
+- **Next:** score v1.0.0 `test` per source for this model and the untuned
+  NLLB, to see where fine-tuning helps; paired bootstrap on FLORES+ against
+  the June model.
+
 ## 2026-04-21 – 2026-06-02 (deduplicated mixed data, stage 2)
 
 - **Deduplicating the mixed data helped a little, still below
