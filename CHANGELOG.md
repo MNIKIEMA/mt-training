@@ -23,6 +23,13 @@ All notable changes to this project will be documented in this file.
   `--min_laser`, and leaves out pairs repeating a parallel sentence;
   writes parquet splits that `train.py --dataset_id <dir>` loads, or pushes
   a private Hub copy. `scripts/train_bt.sh` trains French -> Mooré on it.
+- `mt-training compare` also reports, per model, the share of outputs over
+  `--long_ratio` (1.5) times their reference length and the mean share of
+  repeated words, to tell a chrF++ gain from longer or looping output.
+- `scripts/eval_suite.sh` (FLORES+, Bouquet sentences and paragraphs,
+  `moore-web-parallel` test, normalized references, either direction) and
+  `scripts/compare_suite.sh` (`mt-training compare` on each set), the
+  evaluation behind the logbook tables.
 - `--dtype` (e.g. `bfloat16`) for HF models in `mt-training translate`,
   `eval.py` and `backtranslate`. Fine-tuned checkpoints are saved in fp32
   (mixed-precision training keeps fp32 weights), which ran out of memory

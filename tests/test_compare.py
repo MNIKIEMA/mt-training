@@ -2,7 +2,7 @@ import csv
 
 import pytest
 
-from mt_training.compare import CompareConfig, compare, length_buckets
+from mt_training.compare import CompareConfig, compare, length_buckets, repeated_word_share
 
 
 def _write(path, rows):
@@ -49,3 +49,25 @@ def test_rejects_files_for_different_examples(tmp_path):
     _write(tmp_path / "b.csv", [{"source": "Deux.", "reference": "A.", "hypothesis": "A."}])
     with pytest.raises(ValueError):
         compare(CompareConfig(tmp_path / "a.csv", tmp_path / "b.csv"))
+
+
+def test_repeated_word_share():
+    assert repeated_word_share("") == 0.0
+    assert repeated_word_share("a b c d") == 0.0
+    assert repeated_word_share("b sẽn b sẽn b sẽn") == pytest.approx(2 / 3)
+
+
+def test_long_and_repeated_outputs_are_flagged(tmp_path):
+    refs = [f"Tõnd na n kẽnga yiri {i}." for i in range(10)]
+    rows = [{"source": f"Src {i}.", "reference": r, "hypothesis": r} for i, r in enumerate(refs)]
+    _write(tmp_path / "base.csv", rows)
+    looping = [dict(r, hypothesis=r["reference"] + " b sẽn b sẽn b sẽn b sẽn") for r in rows[:4]]
+    _write(tmp_path / "new.csv", looping + rows[4:])
+    overall = compare(
+        CompareConfig(tmp_path / "base.csv", tmp_path / "new.csv", buckets=2, resamples=20)
+    )[-1]
+    assert overall["long_share_baseline"] == 0.0
+    assert overall["long_share_candidate"] == pytest.approx(0.4)
+    assert overall["repeat_share_baseline"] == 0.0
+    expected = 0.4 * repeated_word_share(looping[0]["hypothesis"])
+    assert overall["repeat_share_candidate"] == pytest.approx(expected, abs=1e-3)

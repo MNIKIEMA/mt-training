@@ -5,7 +5,11 @@ Reads two prediction files written by `mt_training.eval --output` (csv or jsonl
 with `source`, `reference`, `hypothesis`) for the same examples in the same
 order. Reports chrF++ and BLEU per source-length bucket, with a paired
 bootstrap 95% confidence interval for the chrF++ difference (candidate -
-baseline), and the output/reference length ratio of each model.
+baseline), and for each model the output/reference length ratio, the share
+of outputs longer than `--long_ratio` times their reference, and the mean
+share of repeated words in an output (1 - distinct/total words), which flag
+a chrF++ gain that comes from longer or looping output rather than better
+translations (chrF++ weighs recall twice as much as precision).
 
 Usage:
     python -m mt_training.eval --model base-ct2 --output base.csv
@@ -32,6 +36,9 @@ class CompareConfig:
     )
     resamples: int = field(default=1000, metadata={"help": "Paired bootstrap resamples"})
     seed: int = field(default=0, metadata={"help": "Bootstrap random seed"})
+    long_ratio: float = field(
+        default=1.5, metadata={"help": "An output this many times its reference length is long"}
+    )
     output: Path | None = field(default=None, metadata={"help": "Also write the rows as JSON"})
 
 
@@ -64,6 +71,12 @@ def corpus_score(metric, stats: np.ndarray) -> float:
     return metric._compute_score_from_stats(stats.sum(0)).score
 
 
+def repeated_word_share(text: str) -> float:
+    """1 - distinct/total words: 0 for no repetition, near 1 for a loop."""
+    words = text.split()
+    return 1 - len(set(words)) / len(words) if words else 0.0
+
+
 def compare(cfg: CompareConfig) -> list[dict]:
     base, cand = load_predictions(cfg.baseline), load_predictions(cfg.candidate)
     if [r["source"] for r in base] != [r["source"] for r in cand]:
@@ -80,6 +93,9 @@ def compare(cfg: CompareConfig) -> list[dict]:
     bleu_a, bleu_b = sentence_stats(bleu, hyp_a, refs), sentence_stats(bleu, hyp_b, refs)
     ref_len = np.array([len(r) for r in refs])
     len_a, len_b = np.array([len(h) for h in hyp_a]), np.array([len(h) for h in hyp_b])
+    long_a, long_b = len_a > cfg.long_ratio * ref_len, len_b > cfg.long_ratio * ref_len
+    rep_a = np.array([repeated_word_share(h) for h in hyp_a])
+    rep_b = np.array([repeated_word_share(h) for h in hyp_b])
 
     rng = np.random.default_rng(cfg.seed)
     rows = []
@@ -102,6 +118,10 @@ def compare(cfg: CompareConfig) -> list[dict]:
                 "bleu_candidate": round(corpus_score(bleu, bleu_b[idx]), 2),
                 "len_ratio_baseline": round(len_a[idx].sum() / ref_len[idx].sum(), 2),
                 "len_ratio_candidate": round(len_b[idx].sum() / ref_len[idx].sum(), 2),
+                "long_share_baseline": round(float(long_a[idx].mean()), 3),
+                "long_share_candidate": round(float(long_b[idx].mean()), 3),
+                "repeat_share_baseline": round(float(rep_a[idx].mean()), 3),
+                "repeat_share_candidate": round(float(rep_b[idx].mean()), 3),
             }
         )
     return rows
@@ -111,6 +131,7 @@ def print_table(rows: list[dict]) -> None:
     print(
         f"{'bucket':14} {'n':>5} | {'chrF++ base':>11} {'cand':>6} {'gain':>6} {'95% CI':>16}"
         f" | {'BLEU base':>9} {'cand':>5} | {'len base':>8} {'cand':>5}"
+        f" | {'long base':>9} {'cand':>5} | {'rep base':>8} {'cand':>5}"
     )
     for r in rows:
         ci = f"[{r['ci95_low']:+.2f}, {r['ci95_high']:+.2f}]"
@@ -119,6 +140,8 @@ def print_table(rows: list[dict]) -> None:
             f" {r['chrf++_candidate']:>6.2f} {r['chrf++_gain']:>+6.2f} {ci:>16}"
             f" | {r['bleu_baseline']:>9.2f} {r['bleu_candidate']:>5.2f}"
             f" | {r['len_ratio_baseline']:>8.2f} {r['len_ratio_candidate']:>5.2f}"
+            f" | {r['long_share_baseline']:>9.1%} {r['long_share_candidate']:>5.1%}"
+            f" | {r['repeat_share_baseline']:>8.3f} {r['repeat_share_candidate']:>5.3f}"
         )
 
 

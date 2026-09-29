@@ -5,6 +5,19 @@ by default, or any Hub dataset with `--split`). `inference.py` translates
 with an HF model or a CTranslate2 model directory (`CT2Translator`).
 Post-training evals in `train.py` go through CT2.
 
+## 2026-09-29 (evaluation suite)
+
+- **`scripts/eval_suite.sh` / `scripts/compare_suite.sh`** replace the
+  ad-hoc driver used for v1 vs v2 and bt-v1 vs v3: the same four sets and
+  settings (normalized references, `--max_new_tokens` 384 for Bouquet
+  paragraphs, 256 for the test split), CSVs named `<name>-<set>.csv`.
+- **`mt-training compare` flags length and loops**: share of outputs over
+  1.5× their reference length and mean repeated-word share
+  (1 − distinct/total words) per model. Added after FrMos-bt-v1's FLORES+
+  chrF++ gain (+2.28) came with outputs 22% longer and BLEU down
+  ([experiments.md](experiments.md)); it reproduces the numbers found by
+  hand (long 6.0% → 18.9%, repeated words 0.135 → 0.214).
+
 ## 2026-09-29 (Bouquet)
 
 - **`eval.py --dataset facebook/bouquet`** loads a Bouquet benchmark file

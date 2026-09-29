@@ -117,8 +117,29 @@ uv run mt-training compare --baseline base.csv --candidate new.csv
 ```
 
 Prints chrF++ and BLEU per source-length bucket (4 equal-size buckets by
-default), the paired bootstrap 95% CI of the chrF++ gain, and each model's
-output/reference length ratio.
+default), the paired bootstrap 95% CI of the chrF++ gain, and for each model
+the output/reference length ratio, the share of outputs over 1.5× their
+reference length (`--long_ratio`) and the mean share of repeated words.
+chrF++ rewards recall, so a gain that comes with longer or looping output is
+not only a better translation: read these columns and BLEU together.
+
+### The standard evaluation suite
+
+```bash
+# FLORES+ devtest, Bouquet sentences and paragraphs, moore-web-parallel test
+./scripts/eval_suite.sh <model or CT2 dir> v3 evaluations/
+./scripts/eval_suite.sh <other model> bt-v1 evaluations/
+./scripts/compare_suite.sh v3 bt-v1 evaluations/
+
+# Mooré -> French
+SRC_LANG=mos_Latn TGT_LANG=fra_Latn ./scripts/eval_suite.sh <mos-fra model> mf-v2 evaluations/
+```
+
+`eval_suite.sh` scores with references normalized for the NLLB vocabulary
+(`--normalize_references true`) and the `--max_new_tokens` used in the
+logbooks (384 for Bouquet paragraphs, 256 for the test split); extra eval
+options go in `EVAL_ARGS`. `compare_suite.sh` prints the `All` row of
+`mt-training compare` per set and saves the per-bucket rows as JSON.
 
 ### Checking a benchmark against the training data
 

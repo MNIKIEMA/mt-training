@@ -11,7 +11,7 @@ working training run over a clever abstraction.
 - `src/mt_training/text.py`: `normalize_for_nllb`, applied to every text before tokenization (training and inference); NLLB has no ’ or « ».
 - `src/mt_training/eval.py`: dataset loading, translation, BLEU, and chrF++ evaluation.
 - `src/mt_training/overlap.py`: finds benchmark sources that also appear in the training data (normalized exact match).
-- `src/mt_training/compare.py`: compares two `eval.py --output` files per source-length bucket, with a paired bootstrap CI.
+- `src/mt_training/compare.py`: compares two `eval.py --output` files per source-length bucket, with a paired bootstrap CI, length ratio, long-output and repeated-word shares.
 - `src/mt_training/inference.py`: HF and CTranslate2 inference helpers.
 - `src/mt_training/convert_ct2.py`: converts a HF seq2seq checkpoint to CTranslate2.
 - `src/mt_training/round_trip.py`: French round trip through English (quickmt) to paraphrase the French side; not backtranslation.
@@ -21,6 +21,8 @@ working training run over a clever abstraction.
 - `scripts/debug.sh`: small dry-run training script.
 - `src/mt_training/backtranslate.py`: Mooré monolingual sentences -> synthetic French pairs (moore-web-parallel schema, marked synthetic, `drop_reason` per pair); `scripts/backtranslate.sh` runs it (also on Modal).
 - `scripts/train_mos_fra.sh`: Mooré → French with `train.sh`'s hyperparameters (backtranslation model).
+- `src/mt_training/mix.py` (`mt-training mix-bt`): adds filtered backtranslated pairs to the train split of `moore-web-parallel`; `scripts/train_bt.sh` trains on the result.
+- `scripts/eval_suite.sh` / `scripts/compare_suite.sh`: the standard evaluation (FLORES+, Bouquet sentences and paragraphs, test split) of one model, and the comparison of two.
 - `scripts/modal_train.py`: runs any of the scripts above on a Modal GPU, outputs on a Modal Volume.
 
 ## Commands

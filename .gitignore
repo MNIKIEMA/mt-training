@@ -13,3 +13,4 @@ wheels/
 # Backtranslation outputs
 data/bt/
 data/mix/
+evaluations/
