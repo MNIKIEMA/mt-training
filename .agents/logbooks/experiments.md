@@ -21,6 +21,62 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-29 (sentence length: FLORES+ vs moore-web-parallel v1.0.0)
+
+- **Training rows are much shorter than FLORES+, but long ones exist; most
+  are `conseils`.** French characters and Mooré NLLB tokens (no special
+  tokens):
+
+  | Set | Pairs | fr chars median (p90) | mos tokens median (p90) |
+  | --- | ---: | --- | --- |
+  | FLORES+ devtest | 1,012 | 149 (223) | 39 (61) |
+  | v1.0.0 train | 39,038 | 42 (228) | 11 (70) |
+  | v1.0.0 validation | 2,491 | 134 (255) | 35 (73) |
+  | v1.0.0 test | 2,573 | 123 (271) | 29 (73) |
+
+  Per source (train), fr chars median / mos tokens median:
+  `lexicon_entries` 9 / 2 (16,556 rows), `du-moore` 10 / 5, `digital-terms`
+  12 / 7, `lexicon` 41 / 11, `mos-contes-volume-5` 76 / 23, `kade` 77 / 22,
+  `abcburkina-contes` 79 / 21, `sida` 85 / 27, `udhr` 132 / 47, `mafand`
+  137 / 34, `messages-nouvel-an` 150 / 37, `conseils` 163 / 50 (12,221 rows),
+  `digital-defs` 176 / 44, `news` 189 / 44, `expert` 329 / 87.
+
+- **9,590 train rows (24.6%) are at least as long as the FLORES+ median
+  (149 French chars); 7,011 of them (73%) are `conseils`.** Other long rows:
+  `mafand` 1,132, `news` 841, `expert` 296, `digital-defs` 80,
+  `mos-contes-volume-5` 79, `kade` 65, `udhr` 28, `messages-nouvel-an` 24,
+  `sida` 16. By tokens `conseils` weighs more still (long rows, 12,221 of
+  them).
+- **FLORES+ by length (untuned NLLB vs `nllb-600m-FrMos-mwp-v1`, CT2 int8,
+  run locally on an RTX 3050 laptop GPU, same `eval.py` settings; quartiles
+  of French length; chrF++ gain with 95% paired bootstrap CI, 1,000
+  resamples, seed 0; `mt-training compare --baseline base.csv --candidate
+  new.csv` on the two `eval.py --output` files):**
+
+  | Quartile (fr chars) | n | chrF++ untuned → new | Gain [95% CI] | out/ref length untuned → new |
+  | --- | ---: | --- | --- | --- |
+  | Q1 (47–117) | 253 | 20.95 → 22.18 | +1.23 [+0.43, +2.04] | 0.98 → 0.99 |
+  | Q2 (117–149) | 253 | 20.64 → 21.95 | +1.32 [+0.60, +2.06] | 0.93 → 0.96 |
+  | Q3 (149–188) | 253 | 20.72 → 22.48 | +1.75 [+0.98, +2.57] | 0.89 → 0.97 |
+  | Q4 (188–415) | 253 | 20.81 → 23.16 | +2.35 [+1.59, +3.05] | 0.85 → 0.98 |
+  | All | 1,012 | 20.77 → 22.55 | +1.78 [+1.40, +2.16] | 0.90 → 0.97 |
+
+  Local totals differ slightly from Modal (untuned 2.94 / 20.77 here vs
+  3.08 / 20.97; new 3.38 / 22.55 vs 3.33 / 22.56): int8 on another GPU.
+  Compare within one device.
+- **The gain is significant and grows with length.** The longest quartile
+  gains most (+2.35), largely by translating the whole sentence: the untuned
+  model's outputs are 15% shorter than the references there, the fine-tuned
+  model's are the right length. Not the 128-token limit (FLORES+ Mooré p90 is
+  61 tokens). Per-quartile BLEU is too noisy to read (Q1 3.10 → 2.69).
+- **Reading (corrected):** length is not the bottleneck; every quartile
+  stays around 22–23 chrF++, so what limits FLORES+ is quality across the
+  board, most likely domain and vocabulary (long training sentences are
+  mostly government-report language) and possibly orthography. The
+  candidates stand: backtranslation of real Mooré text (raamde Mooré side,
+  mooreburkina, HPLT) or down-weighting `conseils`, not round-trip synthetic
+  data from NLLB (see H2).
+
 ## 2026-09-28 (moore-web-parallel v1.0.0, bf16, Modal)
 
 - **First run on the new dataset: in-domain gain, and better than the June

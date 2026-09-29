@@ -79,3 +79,16 @@ uv run python -m mt_training.eval --output predictions.csv --output_format csv
 
 Key options: `--model`, `--batch_size`, `--limit`, `--src_lang`, `--tgt_lang`.  
 Config files are also supported: `uv run python -m mt_training.eval --config eval.yaml`.
+
+### Comparing two models
+
+```bash
+# predictions of both models on the same set, then per-length comparison
+uv run python -m mt_training.eval --model base-ct2 --output base.csv
+uv run python -m mt_training.eval --model new-ct2 --output new.csv
+uv run mt-training compare --baseline base.csv --candidate new.csv
+```
+
+Prints chrF++ and BLEU per source-length bucket (4 equal-size buckets by
+default), the paired bootstrap 95% CI of the chrF++ gain, and each model's
+output/reference length ratio.

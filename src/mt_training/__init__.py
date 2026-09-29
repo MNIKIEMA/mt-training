@@ -3,6 +3,7 @@ import sys
 SUBCOMMANDS = {
     "train": "mt_training.train",
     "eval": "mt_training.eval",
+    "compare": "mt_training.compare",
     "infer": "mt_training.inference",
     "backtranslate": "mt_training.backtranslate",
     "convert-ct2": "mt_training.convert_ct2",

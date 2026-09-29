@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `mt-training compare` (`mt_training.compare`): chrF++ and BLEU of two
+  models' predictions per source-length bucket, with a paired bootstrap 95%
+  CI of the chrF++ gain (resamples sacrebleu's per-sentence statistics,
+  about 2 s for FLORES+), and output/reference length ratios. First tests in
+  `tests/`.
 - `scripts/modal_train.py` runs a training script on a Modal GPU: image
   built from `uv.lock`, outputs and HF cache on Modal Volumes, `HF_TOKEN`
   and `WANDB_API_KEY` from the `huggingface-secret` and `wandb-secret` Modal Secrets, detached runs up to 24 h.
