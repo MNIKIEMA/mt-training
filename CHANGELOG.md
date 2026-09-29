@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `--source_field` / `--target_field` choose the translation direction
+  explicitly (defaults `french` / `moore`); `scripts/train_mos_fra.sh` trains
+  Mooré → French with `train.sh`'s hyperparameters.
+
+### Fixed
+
+- `uvx modal run scripts/modal_train.py --script …` failed ("Specify a Modal
+  Function or local entrypoint") since 0.2.0 added a second entrypoint. FLORES+
+  evaluation is now an option of the single entrypoint (`--flores-model`,
+  with `--src-lang`/`--tgt-lang` for either direction).
+
 ## [0.2.0] - 2026-09-29
 
 ### Added

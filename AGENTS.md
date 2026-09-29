@@ -18,6 +18,7 @@ working training run over a clever abstraction.
 - `scripts/train_mixed_nllb_200k.sh`: mixed/top200k synthetic data training run.
 - `scripts/train_backtranslated.sh`: backtranslated merged data training run.
 - `scripts/debug.sh`: small dry-run training script.
+- `scripts/train_mos_fra.sh`: Mooré → French with `train.sh`'s hyperparameters (backtranslation model).
 - `scripts/modal_train.py`: runs any of the scripts above on a Modal GPU, outputs on a Modal Volume.
 
 ## Commands
@@ -92,8 +93,11 @@ Training datasets are expected to contain:
 The training code renames:
 
 - `source` -> `data_source`
-- `french` -> `source`
-- `moore` -> `target`
+- `--source_field` (default `french`) -> `source`
+- `--target_field` (default `moore`) -> `target`
+
+Mooré → French swaps the two fields and the NLLB codes (`--src_lang
+mos_Latn --tgt_lang fra_Latn`); see `scripts/train_mos_fra.sh`.
 
 Do not silently change these column contracts. If a dataset has a different
 schema, make the mapping explicit.

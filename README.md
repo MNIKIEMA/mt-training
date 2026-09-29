@@ -27,6 +27,15 @@ AWS_REGION=auto
 Trains `facebook/nllb-200-distilled-600M` on [`madoss/moore-web-parallel`](https://huggingface.co/datasets/madoss/moore-web-parallel)
 (config `mos-fra`, pinned to `v1.0.0`) and pushes to the Hub.
 
+Mooré → French (for backtranslation), same hyperparameters:
+
+```bash
+./scripts/train_mos_fra.sh
+```
+
+It passes `--source_field moore --target_field french --src_lang mos_Latn
+--tgt_lang fra_Latn`; any direction can be trained with these four options.
+
 Extra arguments are passed through to training, and override the script's
 own values: `./scripts/train.sh --output_dir_root ./runs/`.
 

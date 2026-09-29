@@ -31,6 +31,10 @@ Run from the repository root:
     uvx modal volume ls mt-training-outputs
     uvx modal volume get mt-training-outputs nllb-600m-FrMos-ct2 ./nllb-600m-FrMos-ct2
 
+    # FLORES+ devtest for any Hub model (no training), as the post-training eval
+    uvx modal run scripts/modal_train.py --flores-model facebook/nllb-200-distilled-600M
+    uvx modal run scripts/modal_train.py --flores-model <mos-fra model> --src-lang mos_Latn --tgt-lang fra_Latn
+
 GPU type: set MODAL_GPU when launching (default A100-80GB), e.g.
 MODAL_GPU=A100-40GB uvx modal run ...
 """
@@ -101,10 +105,57 @@ def train(script: str, extra_args: str = "", wandb_run_id: str = "") -> None:
         cache.commit()
 
 
+@app.function(
+    gpu=os.environ.get("MODAL_GPU", "A100-80GB"),
+    volumes={OUTPUTS: outputs, CACHE: cache},
+    secrets=SECRETS,
+    timeout=2 * 60 * 60,
+)
+def evaluate_flores(
+    model: str, src_lang: str = "fra_Latn", tgt_lang: str = "mos_Latn", quantization: str = "int8"
+) -> dict:
+    """FLORES+ devtest for any HF model, exactly as the post-training eval does it."""
+    from mt_training.eval import FLORES_DEFAULT_SPLIT, FLORES_PLUS, EvalConfig, run_evaluation
+    from mt_training.train import convert_to_ct2
+
+    name = model.replace("/", "--")
+    ct2_dir = convert_to_ct2(model, f"{OUTPUTS}/eval/{name}-ct2-{quantization}", quantization)
+    direction = (
+        "" if (src_lang, tgt_lang) == ("fra_Latn", "mos_Latn") else f"-{src_lang}-{tgt_lang}"
+    )
+    try:
+        metrics, _, _, _ = run_evaluation(
+            EvalConfig(
+                model=ct2_dir,
+                dataset=FLORES_PLUS,
+                src_lang=src_lang,
+                tgt_lang=tgt_lang,
+                split=FLORES_DEFAULT_SPLIT,
+                output=f"{OUTPUTS}/eval/{name}{direction}-flores_plus-{FLORES_DEFAULT_SPLIT}.csv",
+            )
+        )
+    finally:
+        outputs.commit()
+        cache.commit()
+    return metrics
+
+
+# One local entrypoint only: with two, `modal run scripts/modal_train.py` needs
+# an explicit `::name` and the documented commands break.
 @app.local_entrypoint()
 def main(
-    script: str = "debug.sh", extra_args: str = "", wandb_run_id: str = "", wait: bool = True
+    script: str = "debug.sh",
+    extra_args: str = "",
+    wandb_run_id: str = "",
+    wait: bool = True,
+    flores_model: str = "",
+    src_lang: str = "fra_Latn",
+    tgt_lang: str = "mos_Latn",
 ) -> None:
+    if flores_model:
+        # FLORES+ only, no training: --flores-model <hub id> [--src-lang … --tgt-lang …]
+        print(flores_model, evaluate_flores.remote(flores_model, src_lang, tgt_lang))
+        return
     if not (ROOT / "scripts" / script).is_file():
         raise SystemExit(f"No such script: scripts/{script}")
     if wait:
@@ -115,39 +166,3 @@ def main(
     call = train.spawn(script, extra_args, wandb_run_id)
     print(f"Started {call.object_id}.")
     print("Logs: uvx modal app logs mt-training   Stop: uvx modal app stop mt-training")
-
-
-@app.function(
-    gpu=os.environ.get("MODAL_GPU", "A100-80GB"),
-    volumes={OUTPUTS: outputs, CACHE: cache},
-    secrets=SECRETS,
-    timeout=2 * 60 * 60,
-)
-def evaluate_flores(model: str, quantization: str = "int8") -> dict:
-    """FLORES+ devtest for any HF model, exactly as the post-training eval does it."""
-    from mt_training.eval import FLORES_DEFAULT_SPLIT, FLORES_PLUS, EvalConfig, run_evaluation
-    from mt_training.train import convert_to_ct2
-
-    name = model.replace("/", "--")
-    ct2_dir = convert_to_ct2(model, f"{OUTPUTS}/eval/{name}-ct2-{quantization}", quantization)
-    try:
-        metrics, _, _, _ = run_evaluation(
-            EvalConfig(
-                model=ct2_dir,
-                dataset=FLORES_PLUS,
-                src_lang="fra_Latn",
-                tgt_lang="mos_Latn",
-                split=FLORES_DEFAULT_SPLIT,
-                output=f"{OUTPUTS}/eval/{name}-flores_plus-{FLORES_DEFAULT_SPLIT}.csv",
-            )
-        )
-    finally:
-        outputs.commit()
-        cache.commit()
-    return metrics
-
-
-@app.local_entrypoint()
-def flores(model: str = "facebook/nllb-200-distilled-600M", quantization: str = "int8") -> None:
-    """uvx modal run scripts/modal_train.py::flores --model <hub id>"""
-    print(model, evaluate_flores.remote(model, quantization))

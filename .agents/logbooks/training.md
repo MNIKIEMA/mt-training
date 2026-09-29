@@ -47,6 +47,45 @@ runs the in-domain `test` split, CTranslate2 conversion and FLORES+ (see
   container doesn't inherit local env vars, so smoke tests there are
   offline too.
 
+## 2026-09-29 (Mooré → French)
+
+- **Tagged `v0.2.0` first** (commit `d0ba012`): the code that trained
+  `nllb-600m-FrMos-mwp-v1`, before the training code changed for the
+  reverse direction.
+- **Direction is now explicit**: `--source_field` / `--target_field`
+  (defaults `french` / `moore`) feed the `source`/`target` contract;
+  `map_columns` rejects the same field twice. Language tokens still come from
+  the tokenizer built with `--src_lang` / `--tgt_lang`, so all four options
+  change together. Checked on v1.0.0: input starts with `mos_Latn`, labels
+  with `fra_Latn`.
+- **`scripts/train_mos_fra.sh` calls `train.sh`** and appends the four
+  options plus its own repo/run names (`nllb-600m-MosFr-mwp-v1`,
+  `moore-web-parallel-v1.0.0-mos-fra-bf16`): later options win, so both
+  directions always share hyperparameters.
+- **Modal smoke test (debug.sh + swap) passed**: training, test eval, CT2,
+  FLORES+ `mos_Latn → fra_Latn` (10 examples: 22.24 BLEU / 42.58 chrF++,
+  smoke value only; NLLB is much stronger into French, which is what makes
+  it useful for backtranslation).
+- **`train_mos_fra.sh` itself smoke-tested on Modal** with overrides
+  (`--max_steps 20 --max_train_samples 64 --validation_size 10
+  --post_training_eval_limit 10 --eval_strategy steps --eval_steps 10
+  --save_strategy no --report_to none --push_to_hub false --repo_name
+  nllb-dry-run-mos-fra-wrapper`): the wrapper's `exec sh "$(dirname "$0")/
+  train.sh"` works in the container, overrides win, test eval + CT2 +
+  FLORES+ mos → fra ran, nothing pushed (results in
+  `mt-training-outputs:nllb-dry-run-mos-fra-wrapper/all_results.json`).
+  `madoss/nllb-dry-run` on the Hub is a leftover from smoke tests before the
+  2026-09-28 push fix.
+- **Full run launched** 2026-09-29 13:16 from exactly this code (the commit
+  that adds `train_mos_fra.sh`): Modal app `ap-6LhqDKyw0otcK6MNkj74tq`, W&B
+  run `4a7ha86u` (`moore-web-parallel-v1.0.0-mos-fra-bf16`), target
+  `madoss/nllb-600m-MosFr-mwp-v1`. Results go in experiments.md.
+- **Bug found by that smoke test**: `modal_train.py` had two local
+  entrypoints since the `::flores` one (commit `7ae1a78`), and Modal then
+  requires `::main`, so every documented `modal run scripts/modal_train.py
+  --script …` failed. FLORES+ is now `--flores-model <id>` on the single
+  entrypoint, with `--src-lang`/`--tgt-lang`.
+
 ## 2026-09-28 (bf16)
 
 - **Every run so far was full fp32**: no script ever passed `--bf16` or

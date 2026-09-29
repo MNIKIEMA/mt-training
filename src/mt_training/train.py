@@ -48,6 +48,14 @@ class DataTrainingArguments:
         default=None,
         metadata={"help": "Dataset tag or commit to pin (e.g. v1.0.0); None = latest"},
     )
+    source_field: str = field(
+        default="french",
+        metadata={"help": "Dataset column translated from (use `moore` for Mooré → French)"},
+    )
+    target_field: str = field(
+        default="moore",
+        metadata={"help": "Dataset column translated into (use `french` for Mooré → French)"},
+    )
     src_lang: str = field(
         default="fra_Latn",
         metadata={"help": "Source language code (NLLB format, e.g. fra_Latn)"},
@@ -118,15 +126,23 @@ class ModelArguments:
     )
 
 
+def map_columns(dataset, data_args: DataTrainingArguments):
+    """Rename to the training contract: `source` -> `data_source`, then the chosen
+    source/target text columns -> `source`/`target` (e.g. french/moore, or moore/french)."""
+    if data_args.source_field == data_args.target_field:
+        raise ValueError("source_field and target_field must differ")
+    dataset = dataset.rename_column("source", "data_source")
+    dataset = dataset.rename_column(data_args.source_field, "source")
+    return dataset.rename_column(data_args.target_field, "target")
+
+
 def load_and_prepare_dataset(data_args: DataTrainingArguments):
     dataset = load_dataset(
         data_args.dataset_id,
         name=data_args.dataset_config,
         revision=data_args.dataset_revision,
     )
-    dataset = dataset.rename_column("source", "data_source")
-    dataset = dataset.rename_column("french", "source")
-    return dataset.rename_column("moore", "target")
+    return map_columns(dataset, data_args)
 
 
 def build_tokenize_fn(tokenizer: PreTrainedTokenizerBase, data_args: DataTrainingArguments):

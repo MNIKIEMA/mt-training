@@ -16,7 +16,9 @@ Post-training evals in `train.py` go through CT2.
 
 ## 2026-09-28 (FLORES+ for any model)
 
-- **`uvx modal run scripts/modal_train.py::flores --model <hub id>`** runs
+- **`uvx modal run scripts/modal_train.py --flores-model <hub id>`** (was
+  `::flores` until 2026-09-29; add `--src-lang mos_Latn --tgt-lang fra_Latn`
+  for Mooré → French) runs
   the post-training FLORES+ eval on any HF model: CT2 conversion (int8) +
   `run_evaluation` with the same settings, on the same Modal GPU, so scores
   are comparable with post-training results. Translations are saved to the
