@@ -13,10 +13,10 @@ working training run over a clever abstraction.
 - `src/mt_training/compare.py`: compares two `eval.py --output` files per source-length bucket, with a paired bootstrap CI.
 - `src/mt_training/inference.py`: HF and CTranslate2 inference helpers.
 - `src/mt_training/convert_ct2.py`: converts a HF seq2seq checkpoint to CTranslate2.
-- `src/mt_training/backtranslate.py`: backtranslation dataset generation.
+- `src/mt_training/round_trip.py`: French round trip through English (quickmt) to paraphrase the French side; not backtranslation.
 - `scripts/train.sh`: default full training run.
 - `scripts/train_mixed_nllb_200k.sh`: mixed/top200k synthetic data training run.
-- `scripts/train_backtranslated.sh`: backtranslated merged data training run.
+- `scripts/train_round_trip.sh`: training on authentic + round-tripped French (Hub names still say "backtranslated").
 - `scripts/debug.sh`: small dry-run training script.
 - `scripts/train_mos_fra.sh`: Mooré → French with `train.sh`'s hyperparameters (backtranslation model).
 - `scripts/modal_train.py`: runs any of the scripts above on a Modal GPU, outputs on a Modal Volume.

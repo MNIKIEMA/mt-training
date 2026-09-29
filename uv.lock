@@ -1347,7 +1347,7 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-backtranslation = [
+round-trip = [
     { name = "quickmt" },
 ]
 
@@ -1365,14 +1365,14 @@ requires-dist = [
     { name = "draccus", specifier = ">=0.11.5" },
     { name = "evaluate", specifier = ">=0.4.6" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
-    { name = "quickmt", marker = "extra == 'backtranslation'", git = "https://github.com/quickmt/quickmt.git" },
+    { name = "quickmt", marker = "extra == 'round-trip'", git = "https://github.com/quickmt/quickmt.git" },
     { name = "s3fs", specifier = ">=2026.2.0" },
     { name = "sacrebleu", specifier = ">=2.6.0" },
     { name = "torch", specifier = ">=2.8.0", index = "https://download.pytorch.org/whl/cu128" },
     { name = "transformers", specifier = ">=5.5.0" },
     { name = "wandb", specifier = ">=0.23.0" },
 ]
-provides-extras = ["backtranslation"]
+provides-extras = ["round-trip"]
 
 [package.metadata.requires-dev]
 dev = [

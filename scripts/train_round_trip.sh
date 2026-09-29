@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+# Trains on authentic pairs + French round-tripped through English (quickmt,
+# mt_training.round_trip). The Hub dataset/model names below predate the
+# rename and keep "backtranslated".
 RUNNER=""
 if [ "${USE_UV:-0}" = "1" ]; then
     RUNNER="uv run"

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the French round-trip workflow, which is not backtranslation:
+  `mt_training.backtranslate` → `mt_training.round_trip` (subcommand
+  `mt-training round-trip`, extra `round-trip`, rows tagged `source:
+  round_trip`) and `scripts/train_backtranslated.sh` →
+  `scripts/train_round_trip.sh`. "Backtranslation" now means Mooré → French
+  of Mooré monolingual text. Existing Hub names keep "backtranslated".
+
 ### Added
 
 - `--source_field` / `--target_field` choose the translation direction

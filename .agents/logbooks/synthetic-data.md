@@ -1,10 +1,21 @@
-# Synthetic and backtranslated data (`backtranslate.py`, `merge_datasets.py`, `scripts/train_mixed_nllb_200k.sh`, `scripts/train_backtranslated.sh`)
+# Synthetic and round-trip data (`round_trip.py`, `merge_datasets.py`, `scripts/train_mixed_nllb_200k.sh`, `scripts/train_round_trip.sh`)
 
 Experiments adding non-authentic French–Mooré pairs to the ~34k authentic
 ones: NLLB's en → mos training data with the English side translated to
-French (HY-MT), and backtranslation of French monolingual data (quickmt).
+French (HY-MT), and round-trip translation of French through English
+(quickmt, `round_trip.py`; called "backtranslation" until 2026-09-29).
 Run scores are in [experiments.md](experiments.md).
 
+
+## 2026-09-29 (rename)
+
+- **`backtranslate.py` → `round_trip.py`, `train_backtranslated.sh` →
+  `train_round_trip.sh`.** The workflow round-trips French through English
+  to paraphrase the source side; it teaches nothing new about Mooré, like
+  the pivoted NLLB data (H2 in experiments.md). "Backtranslation" is now
+  reserved for Mooré monolingual text → French (`madoss/moore-web-mono`
+  with a Mooré → French model). Hub names (`fr-mos-final-data-backtranslated…`,
+  `fr-mos-backtranslated-merged-mt`) keep the old word.
 ## 2026-09-28
 
 - **These scripts still train on the old datasets**

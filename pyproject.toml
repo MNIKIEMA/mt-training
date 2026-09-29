@@ -25,7 +25,7 @@ dependencies = [
 mt-training = "mt_training:main"
 
 [project.optional-dependencies]
-backtranslation = ["quickmt"]
+round-trip = ["quickmt"]
 
 [build-system]
 requires = ["uv_build>=0.10.9,<0.11.0"]

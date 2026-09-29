@@ -1,5 +1,9 @@
 """
-Backtranslation script using quickmt.
+Round-trip translation of French using quickmt, to paraphrase the French side.
+
+Not backtranslation: nothing new is learned about Mooré. Backtranslation
+(Mooré monolingual text → French with a Mooré → French model) is a separate
+step; see scripts/train_mos_fra.sh.
 
 Pipeline: French → English → French
   1. Translate French monolingual text to English  (quickmt/quickmt-fr-en)
@@ -8,17 +12,17 @@ Pipeline: French → English → French
 Produces a dataset with columns:
   - french_original   : the input French sentence
   - english           : intermediate English translation
-  - french_synthetic  : round-trip French (backtranslated)
-  - source            : "backtranslation"
+  - french_synthetic  : round-trip French
+  - source            : "round_trip"
 
 The synthetic French can be used to augment the French source side of a
 French→Mooré training set.
 
 Usage:
-    uv run python -m mt_training.backtranslate \
+    uv run python -m mt_training.round_trip \
         --dataset_id madoss/fr-mos-final-data \
         --text_column french \
-        --output_path data/backtranslated \
+        --output_path data/round_trip \
         --device cpu
 """
 
@@ -38,7 +42,7 @@ try:
     from quickmt import Translator
 except ImportError as e:
     raise ImportError(
-        "quickmt is required for backtranslation. Install it with: uv sync --extra backtranslation"
+        "quickmt is required for round-trip translation. Install it with: uv sync --extra round-trip"
     ) from e
 
 logger = logging.getLogger(__name__)
@@ -49,7 +53,7 @@ QUICKMT_EN_FR = "quickmt/quickmt-en-fr"
 
 
 @dataclass
-class BacktranslationArguments:
+class RoundTripArguments:
     dataset_id: str = field(
         metadata={"help": "HuggingFace dataset ID with French monolingual text"},
     )
@@ -58,8 +62,8 @@ class BacktranslationArguments:
         metadata={"help": "Column name that holds the French source text"},
     )
     output_path: str = field(
-        default="data/backtranslated",
-        metadata={"help": "Local path to save the backtranslated dataset"},
+        default="data/round_trip",
+        metadata={"help": "Local path to save the round-trip dataset"},
     )
     split: str = field(
         default="train",
@@ -94,9 +98,9 @@ def load_quickmt(model_id: str, device: str) -> Translator:
 
 
 def main() -> None:
-    parser = HfArgumentParser((BacktranslationArguments,))  # type: ignore
+    parser = HfArgumentParser((RoundTripArguments,))  # type: ignore
     (args,) = cast(
-        tuple[BacktranslationArguments],
+        tuple[RoundTripArguments],
         parser.parse_args_into_dataclasses(),
     )
 
@@ -126,7 +130,7 @@ def main() -> None:
             "french_original": french_original,
             "english": english,
             "french_synthetic": french_synthetic,
-            "source": ["backtranslation"] * len(french_original),
+            "source": ["round_trip"] * len(french_original),
         }
     )
 
