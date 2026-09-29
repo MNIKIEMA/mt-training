@@ -17,6 +17,12 @@ All notable changes to this project will be documented in this file.
 - `eval.py --normalize_references true` scores after mapping ’ « » etc. to
   ' " on references and hypotheses, so models that write ' and " (all NLLB
   models can only) are not penalized against typographic references.
+- `mt-training mix-bt` (`mt_training.mix`): adds backtranslated pairs to the
+  train split of `moore-web-parallel` (validation and test stay authentic).
+  Keeps pairs with no `drop_reason`, optionally above `--min_comet_qe` /
+  `--min_laser`, and leaves out pairs repeating a parallel sentence;
+  writes parquet splits that `train.py --dataset_id <dir>` loads, or pushes
+  a private Hub copy. `scripts/train_bt.sh` trains French -> Mooré on it.
 - `--dtype` (e.g. `bfloat16`) for HF models in `mt-training translate`,
   `eval.py` and `backtranslate`. Fine-tuned checkpoints are saved in fp32
   (mixed-precision training keeps fp32 weights), which ran out of memory
@@ -25,6 +31,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- `train.sh`, `debug.sh` and `train_mos_fra.sh` pin `moore-web-parallel`
+  v1.1.0 (orthography fixes, same frozen splits) instead of v1.0.0.
 - Renamed the French round-trip workflow, which is not backtranslation:
   `mt_training.backtranslate` → `mt_training.round_trip` (subcommand
   `mt-training round-trip`, extra `round-trip`, rows tagged `source:

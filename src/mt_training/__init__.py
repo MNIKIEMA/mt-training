@@ -8,6 +8,7 @@ SUBCOMMANDS = {
     "infer": "mt_training.inference",
     "backtranslate": "mt_training.backtranslate",
     "round-trip": "mt_training.round_trip",
+    "mix-bt": "mt_training.mix",
     "convert-ct2": "mt_training.convert_ct2",
 }
 

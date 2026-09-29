@@ -33,6 +33,6 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ${RUNNER} python -m mt_training
     --output_dir_root /workspace/ \
     --dataset_id madoss/moore-web-parallel \
     --dataset_config mos-fra \
-    --dataset_revision v1.0.0 \
+    --dataset_revision v1.1.0 \
     --project nllb-moore-web \
     "$@"

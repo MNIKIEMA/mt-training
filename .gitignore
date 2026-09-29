@@ -12,3 +12,4 @@ wheels/
 /wandb
 # Backtranslation outputs
 data/bt/
+data/mix/

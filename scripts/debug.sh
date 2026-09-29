@@ -31,7 +31,7 @@ ${RUNNER} python -m mt_training.train \
     --output_dir_root /tmp/ \
     --dataset_id madoss/moore-web-parallel \
     --dataset_config mos-fra \
-    --dataset_revision v1.0.0 \
+    --dataset_revision v1.1.0 \
     --report_to wandb \
     --project nllb-moore-web \
     "$@"

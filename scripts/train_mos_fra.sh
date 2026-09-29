@@ -7,6 +7,6 @@ exec sh "$(dirname "$0")/train.sh" \
     --target_field french \
     --src_lang mos_Latn \
     --tgt_lang fra_Latn \
-    --run_name moore-web-parallel-v1.0.0-mos-fra-bf16 \
+    --run_name moore-web-parallel-v1.1.0-mos-fra-bf16 \
     --repo_name nllb-600m-MosFr-mwp-v1 \
     "$@"

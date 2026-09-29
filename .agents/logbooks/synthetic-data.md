@@ -7,6 +7,31 @@ French (HY-MT), and round-trip translation of French through English
 Run scores are in [experiments.md](experiments.md).
 
 
+## 2026-09-29 (dataset for the first backtranslation run)
+
+- **`mt-training mix-bt`** builds it: pairs with no `drop_reason`, no score
+  threshold (COMET-QE filtering is the later ablation, `--min_comet_qe`),
+  minus pairs whose French or Mooré (normalized as in `overlap.py`) is in
+  any split of `moore-web-parallel`; a second synthetic pair with the same
+  Mooré is dropped too. Synthetic rows get the parallel schema,
+  `source: bt-wikipedia`, `reviewed: false`; validation and test are the
+  untouched authentic splits.
+- **`data/mix/mwp-v1.1.0-bt-mosfr-v2/`** (not in git): train 39,023 authentic
+  + 8,764 synthetic = 47,787; 53 left out by the rules, none by overlap with
+  the parallel data. Synthetic is 18% of train rows.
+- **No benchmark overlap** (normalized exact match, either side): 0 with
+  FLORES+ dev/devtest, Bouquet test (sentence and paragraph level) and
+  `burkimbia/mt-benchmark-public`.
+- **On the Hub**: private `madoss/moore-web-parallel-bt` (config `mos-fra`),
+  commit `26afc31`, which `scripts/train_bt.sh` pins.
+- **Baseline**: FrMos-v2 was trained on `moore-web-parallel` v1.0.0 and this
+  mix is on v1.1.0 (orthography fixes, same frozen splits), so a v1.1.0
+  baseline without backtranslation is trained too; the two runs differ only
+  by the synthetic pairs. `train.sh` now pins v1.1.0:
+  `scripts/train.sh --run_name moore-web-parallel-v1.1.0-fra-mos-bf16
+  --repo_name nllb-600m-FrMos-mwp-v3` and `scripts/train_bt.sh`
+  (`nllb-600m-FrMos-mwp-bt-v1`).
+
 ## 2026-09-29 (backtranslation with MosFr-v2)
 
 - **Output**: `data/bt/moore-web-mono-v1.1.0-bt-MosFr-v2.jsonl` (not in git),
