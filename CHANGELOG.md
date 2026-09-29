@@ -4,23 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-
-- Text is normalized for the NLLB vocabulary before tokenization, in training
-  and at inference (`mt_training.text.normalize_for_nllb`): ’ ‘ ʼ -> ',
-  « mot » / “ ” -> "mot", — – -> -, a stray Greek perispomeni -> tilde, and
-  ɭ (used as capital ɩ in all-caps conseils headings) -> Ɩ. NLLB turns ’ and
-  « » into <unk> and decoding drops them, so models trained before this
-  emitted "Cest", "quil" and lost every guillemet. `python -m mt_training.text`
-  lists characters that still become <unk> in a dataset.
-
 ### Added
 
+- `--source_field` / `--target_field` choose the translation direction
+  explicitly (defaults `french` / `moore`); `scripts/train_mos_fra.sh` trains
+  Mooré → French with `train.sh`'s hyperparameters.
 - `mt-training backtranslate` (`mt_training.backtranslate`,
   `scripts/backtranslate.sh`): translates Mooré monolingual sentences
   (default `madoss/moore-web-mono` v1.1.0) into French with a Mooré -> French
   model, writing synthetic pairs in the `moore-web-parallel` schema with a
   `drop_reason` per pair; resumable by id.
+- `eval.py --normalize_references true` scores after mapping ’ « » etc. to
+  ' " on references and hypotheses, so models that write ' and " (all NLLB
+  models can only) are not penalized against typographic references.
 
 ### Changed
 
@@ -31,14 +27,15 @@ All notable changes to this project will be documented in this file.
   `scripts/train_round_trip.sh`. "Backtranslation" now means Mooré → French
   of Mooré monolingual text. Existing Hub names keep "backtranslated".
 
-### Added
-
-- `--source_field` / `--target_field` choose the translation direction
-  explicitly (defaults `french` / `moore`); `scripts/train_mos_fra.sh` trains
-  Mooré → French with `train.sh`'s hyperparameters.
-
 ### Fixed
 
+- Text is normalized for the NLLB vocabulary before tokenization, in training
+  and at inference (`mt_training.text.normalize_for_nllb`): ’ ‘ ʼ -> ',
+  « mot » / “ ” -> "mot", — – -> -, a stray Greek perispomeni -> tilde, and
+  ɭ (used as capital ɩ in all-caps conseils headings) -> Ɩ. NLLB turns ’ and
+  « » into <unk> and decoding drops them, so models trained before this
+  emitted "Cest", "quil" and lost every guillemet. `python -m mt_training.text`
+  lists characters that still become <unk> in a dataset.
 - `uvx modal run scripts/modal_train.py --script …` failed ("Specify a Modal
   Function or local entrypoint") since 0.2.0 added a second entrypoint. FLORES+
   evaluation is now an option of the single entrypoint (`--flores-model`,

@@ -21,6 +21,40 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-29 (v2: NLLB <unk> fix, both directions)
+
+- **`nllb-600m-FrMos-mwp-v2` and `nllb-600m-MosFr-mwp-v2`**: same scripts,
+  data (`moore-web-parallel` v1.0.0) and hyperparameters as v1, plus
+  `normalize_for_nllb` before tokenization (commit `3303a25`). Trained in
+  parallel on Modal.
+- **Their own post-training scores are not comparable with v1**: the test
+  metric is computed against tokenized labels, which for v1 had ’ and « »
+  deleted (<unk>) and for v2 contain ' and "; FLORES+/Bouquet references keep
+  ’ « », which penalizes v2 for writing ' and ". So v1 and v2 were re-scored
+  with the same references, normalized on both sides
+  (`eval.py --normalize_references true`, new): CT2 int8 on the local RTX
+  3050, 128 new tokens (sentences), 384 (Bouquet paragraphs), 256 (test);
+  in-domain test = `moore-web-parallel` test split. chrF++, v2 − v1 with 95%
+  paired bootstrap CI (`mt-training compare`):
+
+  | | FLORES+ (1,012) | Bouquet sent. (854) | Bouquet para. (198) | test (2,573) |
+  | --- | --- | --- | --- | --- |
+  | mos → fra v1 → v2 | 30.01 → 30.46, +0.45 [+0.12, +0.78] | 33.12 → 34.12, +1.00 [+0.54, +1.47] | 38.72 → 38.86, +0.14 [−0.43, +0.74] | 38.56 → 38.53, −0.03 [−0.30, +0.21] |
+  | fra → mos v1 → v2 | 22.85 → 22.68, −0.18 [−0.42, +0.07] | 29.05 → 28.74, −0.31 [−0.73, +0.10] | 34.03 → 34.01, −0.02 [−0.46, +0.42] | 32.77 → 32.69, −0.08 [−0.34, +0.16] |
+
+- **Mooré → French: the fix works.** Outputs with glued elisions ("cest",
+  "quil"): FLORES+ 198 -> 3, Bouquet sentences 96 -> 5, paragraphs 22 -> 4,
+  test 394 -> 9; outputs with an apostrophe roughly double (FLORES+ 361 ->
+  869). Significant gains on FLORES+ and Bouquet sentences.
+- **French → Mooré: no significant change** (all CIs include 0). Mooré rarely
+  uses ’ (280 training rows), and straight " was already common in the
+  training text, so v1 wrote quotes as often as the references (Bouquet
+  sentences: 44 v1 / 43 v2 outputs with quotes, 37 references).
+- **Use v2 in both directions** (MosFr-v2 for backtranslation).
+- **Normalized references raise absolute scores a little** (v1 fra→mos
+  FLORES+ 22.85 vs 22.56 with raw references): compare runs scored the same
+  way only.
+
 ## 2026-09-29 (Mooré → French model, for backtranslation)
 
 - **`madoss/nllb-600m-MosFr-mwp-v1`** (private), W&B `4a7ha86u`,

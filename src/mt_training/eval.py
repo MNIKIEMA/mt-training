@@ -37,6 +37,7 @@ from mt_training.inference import (
     load_model,
     translate_batch,
 )
+from mt_training.text import normalize_for_nllb
 
 load_dotenv()
 
@@ -89,6 +90,16 @@ class EvalConfig:
     )
     output_format: Literal["csv", "jsonl"] = field(
         default="csv", metadata={"help": "Output format when --output is set"}
+    )
+    normalize_references: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Score after mapping ’ « » etc. to ' \" on references and hypotheses "
+                "(normalize_for_nllb): NLLB models can only write ' and \", so raw "
+                "references penalize models that write them"
+            )
+        },
     )
 
 
@@ -224,6 +235,9 @@ def run_evaluation(
             )
         )
 
+    if cfg.normalize_references:
+        references = [normalize_for_nllb(r) for r in references]
+        hypotheses = [normalize_for_nllb(h) for h in hypotheses]
     refs_wrapped = [[r] for r in references]
 
     bleu_metric = evaluate.load("sacrebleu")
