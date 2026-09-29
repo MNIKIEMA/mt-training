@@ -21,6 +21,30 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-29 (Mooré → French model, for backtranslation)
+
+- **`madoss/nllb-600m-MosFr-mwp-v1`** (private), W&B `4a7ha86u`,
+  `scripts/train_mos_fra.sh` (= `train.sh` hyperparameters, columns and NLLB
+  codes swapped), `moore-web-parallel` v1.0.0, bf16, Modal A100-80GB, 8
+  epochs, 29 min end to end, code of commit `4de55b4`. In-domain test (2,573):
+  20.55 BLEU / 38.48 chrF++.
+- **Clearly better than the untuned NLLB into French**, same pipeline (CT2
+  int8; FLORES+ on Modal via `--flores-model`, Bouquet on the local RTX 3050
+  with `eval.py --src_lang mos_Latn --tgt_lang fra_Latn`, 128 new tokens for
+  sentences, 384 for paragraphs; CIs from `mt-training compare`):
+
+  | Mooré → French | untuned NLLB | `nllb-600m-MosFr-mwp-v1` | chrF++ gain [95% CI] |
+  | --- | --- | --- | --- |
+  | FLORES+ devtest (1,012), BLEU / chrF++ | 7.51 / 26.74 | 7.83 / 29.93 | +3.19 |
+  | Bouquet sentences (854), BLEU / chrF++ | 7.03 / 24.80 | 12.43 / 32.42 | +7.62 [+6.84, +8.43] |
+  | Bouquet paragraphs (198), BLEU / chrF++ | 7.24 / 26.37 | 14.04 / 37.30 | +10.93 [+9.46, +12.25] |
+
+  Output/reference length on Bouquet paragraphs: untuned 0.72, fine-tuned
+  0.97: the untuned model drops content on long inputs in this direction too.
+  Larger gains than French → Mooré (FLORES+ +1.78, Bouquet sentences +2.62):
+  NLLB's French decoder is strong, so learning to read Mooré pays off more.
+- **Use it for backtranslating `moore-web-mono` v1.1.0** (8,817 sentences).
+
 ## 2026-09-29 (burkimbia/mt-benchmark-public submission)
 
 - **Translated the blind benchmark with `nllb-600m-FrMos-mwp-v1`** (CT2
