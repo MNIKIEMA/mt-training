@@ -21,6 +21,41 @@ comparable.
 Converted from `exp_res.md` on 2026-09-28; dates come from that file and the
 timestamps of the prediction files next to it.
 
+## 2026-09-30 (external: burkimbia/BIA-NLLB-600M-10E-CD-CRCL on Bouquet)
+
+- **Model**: `burkimbia/BIA-NLLB-600M-10E-CD-CRCL` (private, HF only,
+  revision `a7bc97e`; empty model card, so data and recipe are unknown).
+  Converted with `mt_training.convert_ct2` (int8). The repo adds a
+  language token `moor_Latn` (id 256204, `added_tokens.json`; `vocab_size`
+  256208) next to NLLB's `mos_Latn`.
+- **Scoring** as for the bt-v1 entry below: CT2 int8, RTX 3050, normalized
+  references, `beam_size=4`, `no_repeat_ngram_size=3`, 128 new tokens
+  (sentences), 384 (paragraphs). Scored twice: forcing `mos_Latn` with the
+  base NLLB tokenizer, and forcing `moor_Latn` with the repo's tokenizer
+  (`eval.py` wrapped as in `docs/eval-custom-language-code.md`; no code
+  change). Predictions:
+  `evaluations/bia-crcl-ct2-bq-*.csv` (mos) and
+  `evaluations/bia-crcl-moor-ct2-bq-*.csv` (moor). chrF++ (BLEU), length
+  ratio from `mt-training compare`:
+
+  | | Bouquet sent. (854) | Bouquet para. (198) |
+  | --- | --- | --- |
+  | BIA-CRCL, `mos_Latn` | 30.82 (11.95), 0.97 | 34.40 (12.91), 0.93 |
+  | BIA-CRCL, `moor_Latn` | 30.29 (11.53), 0.96 | 34.34 (12.57), 0.93 |
+  | moor − mos | −0.53 [−0.89, −0.17] | −0.05 [−0.49, +0.34] |
+  | FrMos-v3 (v1.1.0) | 29.03 (10.87) | 34.00 (12.83) |
+  | FrMos-bt-v1 | 30.87 (11.68) | 35.44 (13.07) |
+
+- **`mos_Latn` is the right code for this model**: `moor_Latn` is
+  significantly worse on sentences and level on paragraphs, and its outputs
+  sometimes use a French-style spelling ("Yamb toin in maan" for "Yãmb tõe
+  n maana"). Report the `mos_Latn` scores.
+- **Level with bt-v1 on sentences, about 1 chrF++ behind on paragraphs**;
+  ahead of v3 on sentences. Outputs are slightly shorter than the
+  references, so the chrF++ is not inflated by length. No paired CI against
+  our models: the v3/bt-v1 Bouquet prediction files are not in the local
+  `evaluations/`. FLORES+ and the test split are not scored yet.
+
 ## 2026-09-29 (backtranslation: FrMos-mwp-bt-v1 vs a v1.1.0 baseline)
 
 - **Runs** (Modal A100, `train.sh` hyperparameters, 8 epochs):
